@@ -1,0 +1,12 @@
+# Archivos principales de Unreal
+*.uasset filter=lfs diff=lfs merge=lfs -text
+*.umap filter=lfs diff=lfs merge=lfs -text
+
+# Archivos de datos y mapas
+*_BuiltData.uasset filter=lfs diff=lfs merge=lfs -text
+
+# Archivos grandes que podrían colarse (por si acaso)
+*.fbx filter=lfs diff=lfs merge=lfs -text
+*.png filter=lfs diff=lfs merge=lfs -text
+*.jpg filter=lfs diff=lfs merge=lfs -text
+*.exr filter=lfs diff=lfs merge=lfs -text
