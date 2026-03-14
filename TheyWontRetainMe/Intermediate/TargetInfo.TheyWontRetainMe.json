@@ -1,0 +1,14 @@
+{
+	"Targets": [
+		{
+			"Name": "TheyWontRetainMe",
+			"Path": "..\\Source\\TheyWontRetainMe.Target.cs",
+			"Type": "Game"
+		},
+		{
+			"Name": "TheyWontRetainMeEditor",
+			"Path": "..\\Source\\TheyWontRetainMeEditor.Target.cs",
+			"Type": "Editor"
+		}
+	]
+}
