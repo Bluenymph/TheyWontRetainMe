@@ -60,6 +60,8 @@
 *.tif
 *.tiff
 
+#Ignora los archivos pesados
+Content/ArchivosPesados/
 
 # Precompiled Assets
 SourceArt/**/*.png
