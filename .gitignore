@@ -61,7 +61,8 @@
 *.tiff
 
 #Ignora los archivos pesados
-Content/ArchivosPesados/
+Content/ArchivosPesados/*
+!Content/ArchivosPesados/.gitkeep
 
 # Precompiled Assets
 SourceArt/**/*.png
