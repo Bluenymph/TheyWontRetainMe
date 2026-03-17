@@ -2,6 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Character.h"
+#include "Enums/PlayerStates.h"
 #include "PlayerTemplate.generated.h"
 
 class USpringArmComponent;
@@ -20,6 +21,7 @@ public:
 	virtual void Tick(float DeltaTime) override;
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 
+	
 protected:
 	virtual void BeginPlay() override;
 	
@@ -41,6 +43,9 @@ protected:
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Inputs")
 	UInputAction* IA_Saltar;
 	
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Inputs")
+	UInputAction* IA_Apuntar;
+	
 	UPROPERTY(BlueprintReadWrite, EditAnywhere)
 	USpringArmComponent* SpringArm;
 	
@@ -57,6 +62,33 @@ protected:
 	void MovimientoVertical(const FInputActionValue& Value);
 	
 	UFUNCTION(BlueprintCallable)
+	void Apuntar();
+	
+	UFUNCTION(BlueprintCallable)
+	void DejarApuntar();
+	
+	UFUNCTION(BlueprintCallable)
 	void Saltar();
+	
+private:
+	UFUNCTION()
+	void LookForward();
+	
+	UFUNCTION()
+	void LookToDirection();
+	
+	UPROPERTY()
+	EPlayerMovementState PlayerMovementState;
+	
+	UPROPERTY()
+	EPlayerActionState PlayerActionState;
+	
+	UPROPERTY()
+	EPlayerInputMode PlayerInputMode;
+	
+public:
+	FORCEINLINE EPlayerMovementState GetPlayerMovementState() const { return PlayerMovementState; }
+	FORCEINLINE EPlayerActionState GetPlayerActionState() const { return PlayerActionState; }
+	FORCEINLINE EPlayerInputMode GetPlayerInputMode() const { return PlayerInputMode; }
 
 };
