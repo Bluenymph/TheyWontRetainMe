@@ -4,13 +4,6 @@
 #include "PlayerStates.generated.h"
 
 UENUM(BlueprintType)
-enum class EPlayerInputMode : uint8
-{
-	EPIM_Free UMETA(DisplayName = "Movimiento Libre"),
-	EPIM_Aiming UMETA(DisplayName = "Movimiento Apuntando")
-};
-
-UENUM(BlueprintType)
 enum class EPlayerMovementState : uint8
 {
 	EPMS_Idle UMETA(DisplayName = "Idle"),

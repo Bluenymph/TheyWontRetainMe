@@ -26,9 +26,6 @@ protected:
 
 	UPROPERTY(BlueprintReadOnly, Category = "Action")
 	EPlayerActionState CurrentActionState;
-	
-	UPROPERTY(BlueprintReadOnly, Category = "Input")
-	EPlayerInputMode CurrentInputMode;
 
 private:
 	UPROPERTY()

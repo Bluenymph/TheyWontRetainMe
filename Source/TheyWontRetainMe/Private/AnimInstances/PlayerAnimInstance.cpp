@@ -1,5 +1,4 @@
 #include "AnimInstances/PlayerAnimInstance.h"
-#include "LogMacros.h"
 #include "Characters/PlayerTemplate.h"
 
 void UPlayerAnimInstance::NativeUpdateAnimation(float DeltaSeconds)
@@ -10,10 +9,12 @@ void UPlayerAnimInstance::NativeUpdateAnimation(float DeltaSeconds)
 	{
 		CurrentMovementState = PlayerCharacter->GetPlayerMovementState();
 		CurrentActionState = PlayerCharacter->GetPlayerActionState();
-		CurrentInputMode = PlayerCharacter->GetPlayerInputMode();
+		
 		//Debug para mostrar los estados de animacion
 		//LOG("Cambiando estado a: %s", *StaticEnum<EPlayerMovementState>()->GetNameStringByValue((int64)CurrentMovementState));
 	}
+	
+	
 }
 
 void UPlayerAnimInstance::NativeInitializeAnimation()

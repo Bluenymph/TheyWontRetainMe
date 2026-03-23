@@ -9,14 +9,18 @@
 APlayerTemplate::APlayerTemplate()
 {
 	PrimaryActorTick.bCanEverTick = true;
-	
-	PlayerInputMode = EPlayerInputMode::EPIM_Free;
 
 	SpringArm = CreateDefaultSubobject<USpringArmComponent>("CameraBoom");
 	SpringArm->SetupAttachment(GetRootComponent());
 	
 	Camera = CreateDefaultSubobject<UCameraComponent>("Camera");
 	Camera->SetupAttachment(SpringArm);
+	
+	bUseControllerRotationYaw = true;
+	GetCharacterMovement()->bOrientRotationToMovement = false;
+	SpringArm->bUsePawnControlRotation = true;
+	
+	
 }
 
 void APlayerTemplate::BeginPlay()
@@ -32,23 +36,23 @@ void APlayerTemplate::BeginPlay()
 				Subsystem->AddMappingContext(PlayerBaseInput, 0);
 			}
 		}
+		
+		//Limitamos el angulo de la camara
+		if (PC->PlayerCameraManager)
+		{
+			PC->PlayerCameraManager->ViewPitchMax = 20.0f; 
+			PC->PlayerCameraManager->ViewPitchMin = -20.0f; 
+		}
 	}
 	
 }
 
 void APlayerTemplate::MirarRaton(const FInputActionValue& Value)
 {
-	if (!SpringArm) return;
-
 	FVector2D LookAxisVector = Value.Get<FVector2D>();
-	FRotator CurrentRotation = SpringArm->GetRelativeRotation();
 	
-	float NewYaw = CurrentRotation.Yaw + (LookAxisVector.X * SensibilidadRaton);
-	float NewPitch = CurrentRotation.Pitch + (LookAxisVector.Y * SensibilidadRaton);
-	
-	NewPitch = FMath::Clamp(NewPitch, -20.0f, 10.0f); 
-	
-	SpringArm->SetRelativeRotation(FRotator(NewPitch, NewYaw, 0.f));
+	AddControllerYawInput(LookAxisVector.X * SensibilidadRaton);
+	AddControllerPitchInput(LookAxisVector.Y * SensibilidadRaton * -1.f); 
 }
 
 void APlayerTemplate::MovimientoFrontal(const FInputActionValue& Value)
@@ -60,9 +64,6 @@ void APlayerTemplate::MovimientoFrontal(const FInputActionValue& Value)
 	else PlayerMovementState = EPlayerMovementState::EPMS_WalkingBackwards;
 	
 	AddMovementInput(Camera->GetForwardVector(), Value.Get<float>());
-	
-	if (PlayerInputMode == EPlayerInputMode::EPIM_Aiming) LookForward();
-	else LookToDirection();
 }
 
 void APlayerTemplate::MovimientoVertical(const FInputActionValue& Value)
@@ -74,21 +75,6 @@ void APlayerTemplate::MovimientoVertical(const FInputActionValue& Value)
 	else PlayerMovementState = EPlayerMovementState::EPMS_StrafeLeft;
 	
 	AddMovementInput(Camera->GetRightVector(), Value.Get<float>());
-	
-	if (PlayerInputMode == EPlayerInputMode::EPIM_Aiming) LookForward();
-	else LookToDirection();
-}
-
-void APlayerTemplate::Apuntar()
-{
-	LOG("Apuntando")
-	PlayerInputMode = EPlayerInputMode::EPIM_Aiming;
-}
-
-void APlayerTemplate::DejarApuntar()
-{
-	LOG("Ya no apuntamos")
-	PlayerInputMode = EPlayerInputMode::EPIM_Free;
 }
 
 void APlayerTemplate::Saltar()
@@ -99,48 +85,10 @@ void APlayerTemplate::Saltar()
 	Jump();
 }
 
-void APlayerTemplate::LookForward()
-{
-	FRotator SpringArmRotation = SpringArm->GetComponentRotation();
-	FRotator NewRotation(0.f,SpringArmRotation.Yaw, 0.f);
-	NewRotation.Yaw -= 90.f;
-	
-	//Smooth transition
-	float RotationSpeed = 10.f;
-	FRotator SmoothRotation = FMath::RInterpTo(
-		GetMesh()->GetRelativeRotation(),
-		NewRotation,
-		GetWorld()->GetDeltaSeconds(),
-		RotationSpeed
-	);
-
-	GetMesh()->SetRelativeRotation(SmoothRotation);
-}
-
-void APlayerTemplate::LookToDirection()
-{
-	FVector InputVector = GetCharacterMovement()->GetLastInputVector();
-	FRotator InputRotation = InputVector.ToOrientationRotator();
-	FRotator NewRotation(0.f,InputRotation.Yaw, 0.f);
-	NewRotation.Yaw -= 90.f;
-	
-	//Smooth transition
-	float RotationSpeed = 10.f;
-	FRotator SmoothRotation = FMath::RInterpTo(
-		GetMesh()->GetRelativeRotation(),
-		NewRotation,
-		GetWorld()->GetDeltaSeconds(),
-		RotationSpeed
-	);
-
-	GetMesh()->SetRelativeRotation(SmoothRotation);
-}
-
 
 void APlayerTemplate::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
-	SetActorRotation(FRotator(0.f, 0.f, 0.f));
 	PlayerMovementState = EPlayerMovementState::EPMS_Idle;
 }
 
@@ -154,8 +102,6 @@ void APlayerTemplate::SetupPlayerInputComponent(UInputComponent* PlayerInputComp
 		EnhancedInputComponent->BindAction(IA_MovimientoVertical, ETriggerEvent::Triggered,this, &APlayerTemplate::MovimientoVertical);
 		EnhancedInputComponent->BindAction(IA_MirarRaton, ETriggerEvent::Triggered, this, &APlayerTemplate::MirarRaton);
 		EnhancedInputComponent->BindAction(IA_Saltar, ETriggerEvent::Triggered, this, &APlayerTemplate::Saltar);
-		EnhancedInputComponent->BindAction(IA_Apuntar, ETriggerEvent::Started, this, &APlayerTemplate::Apuntar);
-		EnhancedInputComponent->BindAction(IA_Apuntar, ETriggerEvent::Completed, this, &APlayerTemplate::DejarApuntar);
 	}
 
 }
