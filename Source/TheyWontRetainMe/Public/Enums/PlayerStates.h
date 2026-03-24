@@ -4,6 +4,14 @@
 #include "PlayerStates.generated.h"
 
 UENUM(BlueprintType)
+enum class EPlayerWeaponSelected : uint8
+{
+	EPWS_Pistol UMETA(DisplayName = "Dobles pistolas"),
+	EPWS_Shotgun UMETA(DisplayName = "Escopetas")
+};
+
+
+UENUM(BlueprintType)
 enum class EPlayerMovementState : uint8
 {
 	EPMS_Idle UMETA(DisplayName = "Idle"),

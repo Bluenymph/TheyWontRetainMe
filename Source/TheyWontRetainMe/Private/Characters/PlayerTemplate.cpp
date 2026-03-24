@@ -5,6 +5,7 @@
 #include "Camera/CameraComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "GameFramework/SpringArmComponent.h"
+#include "Actors/WeaponTemplate.h"
 
 APlayerTemplate::APlayerTemplate()
 {
@@ -20,7 +21,7 @@ APlayerTemplate::APlayerTemplate()
 	GetCharacterMovement()->bOrientRotationToMovement = false;
 	SpringArm->bUsePawnControlRotation = true;
 	
-	
+	CurrentWeaponState = EPlayerWeaponSelected::EPWS_Pistol;
 }
 
 void APlayerTemplate::BeginPlay()
@@ -45,6 +46,7 @@ void APlayerTemplate::BeginPlay()
 		}
 	}
 	
+	SpawnWeapon();
 }
 
 void APlayerTemplate::MirarRaton(const FInputActionValue& Value)
@@ -83,6 +85,37 @@ void APlayerTemplate::Saltar()
 	
 	PlayerMovementState = EPlayerMovementState::EPMS_Jumping;
 	Jump();
+}
+
+void APlayerTemplate::SpawnWeapon()
+{
+	if (CurrentWeaponState == EPlayerWeaponSelected::EPWS_Pistol )
+	{
+		if (WeaponClass)
+		{
+			FActorSpawnParameters SpawnParams;
+			SpawnParams.Owner = this;
+			SpawnParams.Instigator = GetInstigator();
+
+			CurrentWeapon = GetWorld()->SpawnActor<AWeaponTemplate>(WeaponClass, FVector::ZeroVector, FRotator::ZeroRotator, SpawnParams);
+			CurrentSecondaryWeapon = GetWorld()->SpawnActor<AWeaponTemplate>(WeaponClass, FVector::ZeroVector, FRotator::ZeroRotator, SpawnParams);
+			
+			if (CurrentWeapon && CurrentSecondaryWeapon)
+			{
+				CurrentWeapon->AttachToComponent(
+					GetMesh(), 
+					FAttachmentTransformRules::SnapToTargetIncludingScale, 
+					FName("LeftPistolSocket")
+				);
+				
+				CurrentSecondaryWeapon->AttachToComponent(
+					GetMesh(), 
+					FAttachmentTransformRules::SnapToTargetIncludingScale, 
+					FName("RightPistolSocket")
+				);
+			}
+		}
+	}
 }
 
 
