@@ -21,10 +21,10 @@ public:
 	
 protected:
 	
-	UPROPERTY(BlueprintReadOnly, Category = "Movement")
+	UPROPERTY(BlueprintReadOnly)
 	EPlayerMovementState CurrentMovementState;
 
-	UPROPERTY(BlueprintReadOnly, Category = "Action")
+	UPROPERTY(BlueprintReadOnly)
 	EPlayerActionState CurrentActionState;
 
 private:

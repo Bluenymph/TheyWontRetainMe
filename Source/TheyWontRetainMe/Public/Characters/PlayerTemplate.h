@@ -9,6 +9,7 @@ class USpringArmComponent;
 class UCameraComponent;
 class UInputMappingContext;
 class UInputAction;
+class AWeaponTemplate;
 struct FInputActionValue;
 
 UCLASS()
@@ -27,6 +28,9 @@ protected:
 	
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Ajustes")
 	float SensibilidadRaton = 1.f;
+	
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Referencias")
+	TSubclassOf<AWeaponTemplate> WeaponClass;
 	
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Inputs")
 	UInputMappingContext* PlayerBaseInput;
@@ -62,12 +66,23 @@ protected:
 	void Saltar();
 	
 private:
+	UFUNCTION()
+	void SpawnWeapon();
+	
 	UPROPERTY()
 	EPlayerMovementState PlayerMovementState;
 	
 	UPROPERTY()
 	EPlayerActionState PlayerActionState;
-
+	
+	UPROPERTY()
+	EPlayerWeaponSelected CurrentWeaponState;
+	
+	UPROPERTY()
+	AWeaponTemplate* CurrentWeapon;
+	
+	UPROPERTY()
+	AWeaponTemplate* CurrentSecondaryWeapon; //Para la pistola secundaria
 	
 public:
 	FORCEINLINE EPlayerMovementState GetPlayerMovementState() const { return PlayerMovementState; }
