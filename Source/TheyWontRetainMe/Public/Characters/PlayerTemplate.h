@@ -2,6 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Character.h"
+#include "Enums/PlayerStates.h"
 #include "PlayerTemplate.generated.h"
 
 class USpringArmComponent;
@@ -20,6 +21,7 @@ public:
 	virtual void Tick(float DeltaTime) override;
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 
+	
 protected:
 	virtual void BeginPlay() override;
 	
@@ -58,5 +60,17 @@ protected:
 	
 	UFUNCTION(BlueprintCallable)
 	void Saltar();
+	
+private:
+	UPROPERTY()
+	EPlayerMovementState PlayerMovementState;
+	
+	UPROPERTY()
+	EPlayerActionState PlayerActionState;
+
+	
+public:
+	FORCEINLINE EPlayerMovementState GetPlayerMovementState() const { return PlayerMovementState; }
+	FORCEINLINE EPlayerActionState GetPlayerActionState() const { return PlayerActionState; }
 
 };

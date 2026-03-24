@@ -3,6 +3,7 @@
 #include "EnhancedInputComponent.h"
 #include "LogMacros.h"
 #include "Camera/CameraComponent.h"
+#include "GameFramework/CharacterMovementComponent.h"
 #include "GameFramework/SpringArmComponent.h"
 
 APlayerTemplate::APlayerTemplate()
@@ -14,6 +15,12 @@ APlayerTemplate::APlayerTemplate()
 	
 	Camera = CreateDefaultSubobject<UCameraComponent>("Camera");
 	Camera->SetupAttachment(SpringArm);
+	
+	bUseControllerRotationYaw = true;
+	GetCharacterMovement()->bOrientRotationToMovement = false;
+	SpringArm->bUsePawnControlRotation = true;
+	
+	
 }
 
 void APlayerTemplate::BeginPlay()
@@ -29,28 +36,32 @@ void APlayerTemplate::BeginPlay()
 				Subsystem->AddMappingContext(PlayerBaseInput, 0);
 			}
 		}
+		
+		//Limitamos el angulo de la camara
+		if (PC->PlayerCameraManager)
+		{
+			PC->PlayerCameraManager->ViewPitchMax = 20.0f; 
+			PC->PlayerCameraManager->ViewPitchMin = -20.0f; 
+		}
 	}
 	
 }
 
 void APlayerTemplate::MirarRaton(const FInputActionValue& Value)
 {
-	if (!SpringArm) return;
-
 	FVector2D LookAxisVector = Value.Get<FVector2D>();
-	FRotator CurrentRotation = SpringArm->GetRelativeRotation();
 	
-	float NewYaw = CurrentRotation.Yaw + (LookAxisVector.X * SensibilidadRaton);
-	float NewPitch = CurrentRotation.Pitch + (LookAxisVector.Y * SensibilidadRaton);
-	
-	NewPitch = FMath::Clamp(NewPitch, -20.0f, 10.0f); 
-	
-	SpringArm->SetRelativeRotation(FRotator(NewPitch, NewYaw, 0.f));
+	AddControllerYawInput(LookAxisVector.X * SensibilidadRaton);
+	AddControllerPitchInput(LookAxisVector.Y * SensibilidadRaton * -1.f); 
 }
 
 void APlayerTemplate::MovimientoFrontal(const FInputActionValue& Value)
 {
 	if (!Controller) return;
+	float ParsedValue = Value.Get<float>();
+	
+	if (ParsedValue > 0.0f) PlayerMovementState = EPlayerMovementState::EPMS_WalkingForwards;
+	else PlayerMovementState = EPlayerMovementState::EPMS_WalkingBackwards;
 	
 	AddMovementInput(Camera->GetForwardVector(), Value.Get<float>());
 }
@@ -58,6 +69,10 @@ void APlayerTemplate::MovimientoFrontal(const FInputActionValue& Value)
 void APlayerTemplate::MovimientoVertical(const FInputActionValue& Value)
 {
 	if (!Controller) return;
+	float ParsedValue = Value.Get<float>();
+	
+	if (ParsedValue > 0.0f) PlayerMovementState = EPlayerMovementState::EPMS_StrafeRight;
+	else PlayerMovementState = EPlayerMovementState::EPMS_StrafeLeft;
 	
 	AddMovementInput(Camera->GetRightVector(), Value.Get<float>());
 }
@@ -66,6 +81,7 @@ void APlayerTemplate::Saltar()
 {
 	if (!Controller) return;
 	
+	PlayerMovementState = EPlayerMovementState::EPMS_Jumping;
 	Jump();
 }
 
@@ -73,7 +89,7 @@ void APlayerTemplate::Saltar()
 void APlayerTemplate::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
-
+	PlayerMovementState = EPlayerMovementState::EPMS_Idle;
 }
 
 void APlayerTemplate::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
