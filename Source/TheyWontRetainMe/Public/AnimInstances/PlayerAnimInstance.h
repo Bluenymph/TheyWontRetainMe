@@ -6,6 +6,7 @@
 #include "PlayerAnimInstance.generated.h"
 
 class APlayerTemplate;
+class UAnimMontage;
 
 /**
  *  Clase que controla las animaciones del player
@@ -20,6 +21,20 @@ public:
 	virtual void NativeInitializeAnimation() override;
 	
 protected:
+	UPROPERTY(BlueprintReadOnly, Category = "Animation")
+	bool bIsFiring;
+
+	UFUNCTION()
+	void ActualizarEstadoDisparo(bool bNuevoEstado);
+	
+	UPROPERTY(EditAnywhere, Category = "Animation")
+	UAnimMontage* IzquierdaFuegoMontage;
+	
+	UPROPERTY(EditAnywhere, Category = "Animation")
+	UAnimMontage* DerechaFuegoMontage;
+	
+	UPROPERTY(BlueprintReadOnly, Category = "Animation")
+	int ManoDisparo = 0; //0 izquierda, 1 derecha
 	
 	UPROPERTY(BlueprintReadOnly)
 	EPlayerMovementState CurrentMovementState;
@@ -30,4 +45,7 @@ protected:
 private:
 	UPROPERTY()
 	APlayerTemplate* PlayerCharacter;
+	
+	UFUNCTION()
+	void Disparar();//Si, lo hago aqui. ¿Que pasa wacho?
 };
