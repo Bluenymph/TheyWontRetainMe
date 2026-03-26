@@ -6,6 +6,7 @@
 #include "GameFramework/CharacterMovementComponent.h"
 #include "GameFramework/SpringArmComponent.h"
 #include "Actors/WeaponTemplate.h"
+#include "Systems/BulletPoolSubsystem.h"
 
 APlayerTemplate::APlayerTemplate()
 {
@@ -22,6 +23,12 @@ APlayerTemplate::APlayerTemplate()
 	SpringArm->bUsePawnControlRotation = true;
 	
 	CurrentWeaponState = EPlayerWeaponSelected::EPWS_Pistol;
+}
+
+void APlayerTemplate::CambiarCadenciaDisparo(const float NuevaCadencia)
+{
+	if (NuevaCadencia < 0.1f) CadenciaDisparo = 0.1f;
+	else CadenciaDisparo = NuevaCadencia;
 }
 
 void APlayerTemplate::BeginPlay()
@@ -76,7 +83,7 @@ void APlayerTemplate::MovimientoVertical(const FInputActionValue& Value)
 	if (ParsedValue > 0.0f) PlayerMovementState = EPlayerMovementState::EPMS_StrafeRight;
 	else PlayerMovementState = EPlayerMovementState::EPMS_StrafeLeft;
 	
-	AddMovementInput(Camera->GetRightVector(), Value.Get<float>());
+	AddMovementInput( GetTransform().GetRotation().GetRightVector(), Value.Get<float>());
 }
 
 void APlayerTemplate::Saltar()
@@ -85,6 +92,15 @@ void APlayerTemplate::Saltar()
 	
 	PlayerMovementState = EPlayerMovementState::EPMS_Jumping;
 	Jump();
+}
+
+void APlayerTemplate::Disparar()
+{
+	if (GetWorldTimerManager().IsTimerActive(TimerHandle_Disparo)) return;
+	
+	GetWorldTimerManager().SetTimer(TimerHandle_Disparo,this,&APlayerTemplate::OnTimerCdOut,CadenciaDisparo, false);
+	
+	OnFiringStateChanged.Broadcast(true);
 }
 
 void APlayerTemplate::SpawnWeapon()
@@ -118,6 +134,33 @@ void APlayerTemplate::SpawnWeapon()
 	}
 }
 
+void APlayerTemplate::OnTimerCdOut()
+{
+	GetWorldTimerManager().ClearTimer(TimerHandle_Disparo);
+}
+
+FRotator APlayerTemplate::GetPlayerCameraBoomYawRotation() const
+{
+	return FRotator(0,SpringArm->GetTargetRotation().Yaw,0);
+}
+
+TSubclassOf<ABulletTemplate> APlayerTemplate::GetPlayerBulletClass() const
+{
+	return BulletClass;
+}
+
+AWeaponTemplate* APlayerTemplate::GetPlayerCurrentWeapon()
+{
+	if (CurrentWeapon) return CurrentWeapon;
+	return nullptr;
+}
+
+AWeaponTemplate* APlayerTemplate::GetPlayerCurrentSecondaryWeapon()
+{
+	if (CurrentSecondaryWeapon) return CurrentSecondaryWeapon;
+	return nullptr;
+}
+
 
 void APlayerTemplate::Tick(float DeltaTime)
 {
@@ -135,6 +178,7 @@ void APlayerTemplate::SetupPlayerInputComponent(UInputComponent* PlayerInputComp
 		EnhancedInputComponent->BindAction(IA_MovimientoVertical, ETriggerEvent::Triggered,this, &APlayerTemplate::MovimientoVertical);
 		EnhancedInputComponent->BindAction(IA_MirarRaton, ETriggerEvent::Triggered, this, &APlayerTemplate::MirarRaton);
 		EnhancedInputComponent->BindAction(IA_Saltar, ETriggerEvent::Triggered, this, &APlayerTemplate::Saltar);
+		EnhancedInputComponent->BindAction(IA_Disparar, ETriggerEvent::Triggered, this, &APlayerTemplate::Disparar);
 	}
 
 }

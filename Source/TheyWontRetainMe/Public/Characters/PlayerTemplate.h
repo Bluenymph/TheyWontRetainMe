@@ -5,12 +5,15 @@
 #include "Enums/PlayerStates.h"
 #include "PlayerTemplate.generated.h"
 
+class ABulletTemplate;
 class USpringArmComponent;
 class UCameraComponent;
 class UInputMappingContext;
 class UInputAction;
 class AWeaponTemplate;
 struct FInputActionValue;
+
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnFiringStateChanged, bool, bIsFiring);
 
 UCLASS()
 class THEYWONTRETAINME_API APlayerTemplate : public ACharacter
@@ -22,15 +25,25 @@ public:
 	virtual void Tick(float DeltaTime) override;
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 
+	UPROPERTY(BlueprintAssignable, Category = "Events")
+	FOnFiringStateChanged OnFiringStateChanged;
+	
+	void CambiarCadenciaDisparo(const float NuevaCadencia);
 	
 protected:
 	virtual void BeginPlay() override;
 	
-	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Ajustes")
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Propiedades")
 	float SensibilidadRaton = 1.f;
+	
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Propiedades")
+	float CadenciaDisparo = 0.5f;
 	
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Referencias")
 	TSubclassOf<AWeaponTemplate> WeaponClass;
+	
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Referencias")
+	TSubclassOf<ABulletTemplate> BulletClass;
 	
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Inputs")
 	UInputMappingContext* PlayerBaseInput;
@@ -46,6 +59,9 @@ protected:
 	
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Inputs")
 	UInputAction* IA_Saltar;
+	
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Inputs")
+	UInputAction* IA_Disparar;
 	
 	UPROPERTY(BlueprintReadWrite, EditAnywhere)
 	USpringArmComponent* SpringArm;
@@ -65,7 +81,14 @@ protected:
 	UFUNCTION(BlueprintCallable)
 	void Saltar();
 	
+	UFUNCTION(BlueprintCallable)
+	void Disparar();
+	
 private:
+	const float MAX_SHOOT_CD = 0.1f;
+	
+	FTimerHandle TimerHandle_Disparo;
+	
 	UFUNCTION()
 	void SpawnWeapon();
 	
@@ -84,8 +107,17 @@ private:
 	UPROPERTY()
 	AWeaponTemplate* CurrentSecondaryWeapon; //Para la pistola secundaria
 	
+	UFUNCTION()
+	void OnTimerCdOut();
+	
 public:
+	FRotator GetPlayerCameraBoomYawRotation() const;
+	TSubclassOf<ABulletTemplate> GetPlayerBulletClass() const;
+	AWeaponTemplate* GetPlayerCurrentWeapon();
+	AWeaponTemplate* GetPlayerCurrentSecondaryWeapon();
+	
 	FORCEINLINE EPlayerMovementState GetPlayerMovementState() const { return PlayerMovementState; }
 	FORCEINLINE EPlayerActionState GetPlayerActionState() const { return PlayerActionState; }
+	
 
 };
