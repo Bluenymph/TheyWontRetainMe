@@ -1,6 +1,8 @@
 #include "Actors/BulletTemplate.h"
+#include "LogMacros.h"
 #include "Components/SphereComponent.h"
 #include "GameFramework/ProjectileMovementComponent.h"
+#include "Interfaces/HiteableInterface.h"
 #include "Systems/BulletPoolSubsystem.h"
 
 ABulletTemplate::ABulletTemplate()
@@ -9,15 +11,16 @@ ABulletTemplate::ABulletTemplate()
 	
 	CollisionComp = CreateDefaultSubobject<USphereComponent>(TEXT("SphereComp"));
 	RootComponent = CollisionComp;
+	CollisionComp->OnComponentHit.AddDynamic(this, &ABulletTemplate::OnHit);
 	
 	ProjectileMovement = CreateDefaultSubobject<UProjectileMovementComponent>(TEXT("ProjectileComp"));
 	ProjectileMovement->UpdatedComponent = CollisionComp;
 	ProjectileMovement->bAutoActivate = false;
 }
 
-void ABulletTemplate::OnActivateBullet_Implementation(FVector ShootDirection, float Speed)
+void ABulletTemplate::OnActivateBullet_Implementation(FVector ShootDirection, float Damage, float Speed)
 {
-	IBulletInterface::OnActivateBullet_Implementation(ShootDirection, Speed);
+	IBulletInterface::OnActivateBullet_Implementation(ShootDirection, Damage, Speed);
 	
 	SetActorHiddenInGame(false);
 	SetActorEnableCollision(true);
@@ -25,6 +28,7 @@ void ABulletTemplate::OnActivateBullet_Implementation(FVector ShootDirection, fl
 	
 	ProjectileMovement->ProjectileGravityScale = 0.f;
 	ProjectileMovement->Velocity = ShootDirection * Speed;
+	BulletDamage = Damage;
 	ProjectileMovement->Activate();
 	
 	GetWorldTimerManager().SetTimer(LifeTimerHandle, this, &ABulletTemplate::AutoReturnToPool, MaxLifeTime, false);
@@ -56,6 +60,10 @@ void ABulletTemplate::OnHit(UPrimitiveComponent* HitComp, AActor* OtherActor, UP
                             FVector NormalImpulse, const FHitResult& Hit)
 {
 	//AQUI EL CODIGO CUANDO CHOQUE CON ALGO
+	OnDeactivateBullet_Implementation();
+	if (OtherActor->GetClass()->ImplementsInterface(UHiteableInterface::StaticClass()))
+	{
+		IHiteableInterface::Execute_OnHitReceived(OtherActor,BulletDamage);
+	}
 	
-	OnDeactivateBullet();
 }

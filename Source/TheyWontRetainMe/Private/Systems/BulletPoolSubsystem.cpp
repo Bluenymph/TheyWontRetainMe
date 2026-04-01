@@ -54,7 +54,7 @@ ABulletTemplate* UBulletPoolSubsystem::GetBulletFromPool(TSubclassOf<ABulletTemp
 		BulletToUse->SetActorLocationAndRotation(Location, Rotation);
 		
 		//Llamamos a la función de la interfaz para activarla
-		IBulletInterface::Execute_OnActivateBullet(BulletToUse, BulletToUse->GetActorForwardVector(), 5000.f);
+		IBulletInterface::Execute_OnActivateBullet(BulletToUse, BulletToUse->GetActorForwardVector(), 1.f,5000.f);
 		LOG("Activando la bala")
 	}
 
