@@ -6,7 +6,8 @@
 #include "GameFramework/CharacterMovementComponent.h"
 #include "GameFramework/SpringArmComponent.h"
 #include "Actors/WeaponTemplate.h"
-#include "Systems/BulletPoolSubsystem.h"
+#include "Components/CharacterAttributes.h"
+#include "HUD/MainHUD.h"
 
 APlayerTemplate::APlayerTemplate()
 {
@@ -21,6 +22,8 @@ APlayerTemplate::APlayerTemplate()
 	bUseControllerRotationYaw = true;
 	GetCharacterMovement()->bOrientRotationToMovement = false;
 	SpringArm->bUsePawnControlRotation = true;
+
+	CharacterAttributes = CreateDefaultSubobject<UCharacterAttributes>("Atributos");
 	
 	CurrentWeaponState = EPlayerWeaponSelected::EPWS_Pistol;
 }
@@ -52,6 +55,9 @@ void APlayerTemplate::BeginPlay()
 			PC->PlayerCameraManager->ViewPitchMin = -20.0f; 
 		}
 	}
+
+	MainHUD = Cast<AMainHUD>(GetWorld()->GetFirstPlayerController()->GetHUD());
+	if (!MainHUD) UE_LOG(LogTemp, Error, TEXT("El HUD no esta o no es el correcto. Debe ser BP_MainHUD."));
 	
 	SpawnWeapon();
 }
@@ -60,8 +66,8 @@ void APlayerTemplate::MirarRaton(const FInputActionValue& Value)
 {
 	FVector2D LookAxisVector = Value.Get<FVector2D>();
 	
-	AddControllerYawInput(LookAxisVector.X * SensibilidadRaton);
-	AddControllerPitchInput(LookAxisVector.Y * SensibilidadRaton * -1.f); 
+	AddControllerYawInput(LookAxisVector.X * SensibilidadRaton * FACTOR_SENSIBILIDAD);
+	AddControllerPitchInput(LookAxisVector.Y * SensibilidadRaton * -1.f * FACTOR_SENSIBILIDAD); 
 }
 
 void APlayerTemplate::MovimientoFrontal(const FInputActionValue& Value)
@@ -96,11 +102,16 @@ void APlayerTemplate::Saltar()
 
 void APlayerTemplate::Disparar()
 {
+	if (CharacterAttributes->GetBalasActuales() <= 0) return;
 	if (GetWorldTimerManager().IsTimerActive(TimerHandle_Disparo)) return;
 	
 	GetWorldTimerManager().SetTimer(TimerHandle_Disparo,this,&APlayerTemplate::OnTimerCdOut,CadenciaDisparo, false);
 	
 	OnFiringStateChanged.Broadcast(true);
+
+	CharacterAttributes->SetBalasActuales(CharacterAttributes->GetBalasActuales() - 1);
+	
+	MainHUD->UpdateUIInfo(CharacterAttributes);
 }
 
 void APlayerTemplate::SpawnWeapon()

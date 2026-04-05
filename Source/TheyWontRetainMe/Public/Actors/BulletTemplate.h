@@ -40,4 +40,7 @@ protected:
 private:
 	UPROPERTY()
 	float BulletDamage = 1.f;
+
+public:
+	FORCEINLINE void SetBulletDamage(float Damage) { BulletDamage = Damage; }
 };

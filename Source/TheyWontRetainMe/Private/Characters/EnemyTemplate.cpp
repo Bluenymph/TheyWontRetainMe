@@ -1,6 +1,9 @@
 #include "Characters/EnemyTemplate.h"
+
+#include "DetailLayoutBuilder.h"
 #include "LogMacros.h"
 #include "Components/CapsuleComponent.h"
+#include "Components/CharacterAttributes.h"
 #include "Components/StaticMeshComponent.h"
 
 AEnemyTemplate::AEnemyTemplate()
@@ -12,20 +15,31 @@ AEnemyTemplate::AEnemyTemplate()
 	
 	Mesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("Mesh"));
 	Mesh->SetupAttachment(CapsuleComponent);
+
+	CharacterAttributes = CreateDefaultSubobject<UCharacterAttributes>("Atributos");
 }
 
 void AEnemyTemplate::OnHitReceived_Implementation(float Damage)
 {
 	IHiteableInterface::OnHitReceived_Implementation(Damage);
-	LOG("El enemigo %s ha recibido: %f de daño",*GetName(),Damage);
-	LOG("Le queda: %f de vida.", VidaActual);
-	
-	VidaActual -= Damage;
-	if (VidaActual < 0) LOG("El enemigo %s murio.", *GetName())
+	if (CharacterAttributes->AttributesTakeDmg(Damage) < 0.f)
+		OnDeactivateEnemy_Implementation();
 }
 
-void AEnemyTemplate::BeginPlay()
+void AEnemyTemplate::OnActivateEnemy_Implementation(FVector Position, FRotator Rotation)
 {
-	Super::BeginPlay();
+	IEnemyInterface::OnActivateEnemy_Implementation(Position, Rotation);
 	
+	SetActorLocationAndRotation(Position, Rotation);
+	SetActorHiddenInGame(false);
+	SetActorEnableCollision(true);
+}
+
+void AEnemyTemplate::OnDeactivateEnemy_Implementation()
+{
+	IEnemyInterface::OnDeactivateEnemy_Implementation();
+
+	SetActorLocation(FVector(0, 0, -50000.f)); 
+	SetActorHiddenInGame(true);
+	SetActorEnableCollision(false);
 }

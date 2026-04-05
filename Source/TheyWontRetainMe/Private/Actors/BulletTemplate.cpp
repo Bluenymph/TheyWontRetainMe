@@ -59,7 +59,6 @@ void ABulletTemplate::AutoReturnToPool()
 void ABulletTemplate::OnHit(UPrimitiveComponent* HitComp, AActor* OtherActor, UPrimitiveComponent* OtherComp,
                             FVector NormalImpulse, const FHitResult& Hit)
 {
-	//AQUI EL CODIGO CUANDO CHOQUE CON ALGO
 	OnDeactivateBullet_Implementation();
 	if (OtherActor->GetClass()->ImplementsInterface(UHiteableInterface::StaticClass()))
 	{

@@ -1,6 +1,4 @@
 #include "Systems/BulletPoolSubsystem.h"
-
-#include "LogMacros.h"
 #include "Actors/BulletTemplate.h"
 
 void UBulletPoolSubsystem::PrewarmPool(TSubclassOf<ABulletTemplate> BulletClass, int32 Amount)
@@ -26,7 +24,7 @@ void UBulletPoolSubsystem::PrewarmPool(TSubclassOf<ABulletTemplate> BulletClass,
 	}
 }
 
-ABulletTemplate* UBulletPoolSubsystem::GetBulletFromPool(TSubclassOf<ABulletTemplate> BulletClass, FVector Location, FRotator Rotation)
+ABulletTemplate* UBulletPoolSubsystem::GetBulletFromPool(TSubclassOf<ABulletTemplate> BulletClass, FVector Location, FRotator Rotation, float Damage)
 {
 	if (!BulletClass) return nullptr;
 
@@ -45,7 +43,6 @@ ABulletTemplate* UBulletPoolSubsystem::GetBulletFromPool(TSubclassOf<ABulletTemp
 		SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
 		
 		BulletToUse = GetWorld()->SpawnActor<ABulletTemplate>(BulletClass, Location, Rotation, SpawnParams);
-		LOG("Spawneando...")
 	}
 
 	if (BulletToUse)
@@ -55,18 +52,18 @@ ABulletTemplate* UBulletPoolSubsystem::GetBulletFromPool(TSubclassOf<ABulletTemp
 		
 		//Llamamos a la función de la interfaz para activarla
 		IBulletInterface::Execute_OnActivateBullet(BulletToUse, BulletToUse->GetActorForwardVector(), 1.f,5000.f);
-		LOG("Activando la bala")
 	}
 
-	LOG("Sacando de la pool")
+	BulletToUse->SetBulletDamage(Damage);
 	return BulletToUse;
 }
 
 void UBulletPoolSubsystem::ReturnBulletToPool(ABulletTemplate* Bullet)
 {
 	if (!Bullet) return;
-	LOG("Devolviendo a la pool...");
 
+	Bullet->SetBulletDamage(1.0f);
+	
 	//Desactivamos la bala para que no de por culo
 	IBulletInterface::Execute_OnDeactivateBullet(Bullet);
 

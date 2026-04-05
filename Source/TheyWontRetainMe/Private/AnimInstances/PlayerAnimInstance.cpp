@@ -59,7 +59,7 @@ void UPlayerAnimInstance::Disparar()
 {
 	if (!PlayerCharacter) return;
 	
-	LOG("DISPARANDO DESDE ANIMATOR %i", ManoDisparo);
+	//LOG("DISPARANDO DESDE ANIMATOR %i", ManoDisparo);
 	
 	AWeaponTemplate* ArmaDisparo = PlayerCharacter->GetPlayerCurrentSecondaryWeapon();	
 	if (ManoDisparo == 1) ArmaDisparo = PlayerCharacter->GetPlayerCurrentWeapon();
@@ -71,6 +71,6 @@ void UPlayerAnimInstance::Disparar()
 	{
 		FRotator DesiredRotation = PlayerCharacter->GetPlayerCameraBoomYawRotation();
 		BulletSubsystem->GetBulletFromPool(PlayerCharacter->GetPlayerBulletClass(), 
-			ArmaDisparo->GetActorLocation(), DesiredRotation);
+			ArmaDisparo->GetActorLocation(), DesiredRotation, PlayerCharacter->GetCurrentBulletDamage());
 	}
 }
