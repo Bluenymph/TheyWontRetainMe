@@ -104,7 +104,7 @@ void UEnemiesManager::BeginManageEnemiesLoop()
 void UEnemiesManager::SpawnEnemiesLoop()
 {
 	if (!PlayerPawn) return;
-	LOG("Ciclando enemigos... Posicion del player %f,%f", PlayerPawn->GetActorLocation().X, PlayerPawn->GetActorLocation().Y);
+	//LOG("Ciclando enemigos... Posicion del player %f,%f", PlayerPawn->GetActorLocation().X, PlayerPawn->GetActorLocation().Y);
 
 	FVector SpawnPos;
 	FRotator SpawnRot;

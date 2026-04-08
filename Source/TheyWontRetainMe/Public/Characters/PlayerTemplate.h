@@ -14,6 +14,7 @@ class UInputMappingContext;
 class UInputAction;
 class UCharacterAttributes;
 class AWeaponTemplate;
+class UPaperFlipbookComponent;
 struct FInputActionValue;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnFiringStateChanged, bool, bIsFiring);
@@ -57,6 +58,12 @@ protected:
 
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Referencias")
 	AMainHUD* MainHUD;
+
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Referencias")
+	UPaperFlipbookComponent* ReloadEmote;
+
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Referencias")
+	UPaperFlipbookComponent* QuickReloadEmote;
 	
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Inputs")
 	UInputMappingContext* PlayerBaseInput;
@@ -75,6 +82,9 @@ protected:
 	
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Inputs")
 	UInputAction* IA_Disparar;
+
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Inputs")
+	UInputAction* IA_Recargar;
 	
 	UPROPERTY(BlueprintReadWrite, EditAnywhere)
 	USpringArmComponent* SpringArm;
@@ -90,6 +100,9 @@ protected:
 	
 	UFUNCTION(BlueprintCallable)
 	void MovimientoVertical(const FInputActionValue& Value);
+
+	UFUNCTION(BlueprintCallable)
+	void LlamarRecargar();
 	
 	UFUNCTION(BlueprintCallable)
 	void Saltar();
@@ -120,9 +133,24 @@ private:
 	
 	UPROPERTY()
 	AWeaponTemplate* CurrentSecondaryWeapon; //Para la pistola secundaria
+
+	UPROPERTY()
+	bool CanQuickReload = true;
+	
+	UPROPERTY()
+	float QuickReloadSize = 0.6f;
+	
+	UPROPERTY()
+	float ReloadThreshold = 0.3f;
 	
 	UFUNCTION()
 	void OnTimerCdOut();
+
+	UFUNCTION()
+	float PlaceRngQuickReload();
+
+	UFUNCTION()
+	void OnReloadTimeOut();
 	
 public:
 	FRotator GetPlayerCameraBoomYawRotation() const;

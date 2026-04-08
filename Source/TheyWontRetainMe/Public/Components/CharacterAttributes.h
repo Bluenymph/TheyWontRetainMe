@@ -47,4 +47,6 @@ public:
 	FORCEINLINE void SetDanio(float NuevoDanio) { Danio = NuevoDanio; }
 	FORCEINLINE void SetBalasActuales(int32 NuevasBalas) { BalasActuales = FMath::Clamp(NuevasBalas, 0, MaxBalas); }
 	FORCEINLINE void SetMaxBalas(int32 NuevoMax) { MaxBalas = NuevoMax; }
+
+	FORCEINLINE void Recargar() { BalasActuales = MaxBalas; }
 };

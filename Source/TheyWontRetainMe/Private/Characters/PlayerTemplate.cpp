@@ -2,6 +2,7 @@
 #include "EnhancedInputSubsystems.h"
 #include "EnhancedInputComponent.h"
 #include "LogMacros.h"
+#include "PaperFlipbookComponent.h"
 #include "Camera/CameraComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "GameFramework/SpringArmComponent.h"
@@ -24,6 +25,12 @@ APlayerTemplate::APlayerTemplate()
 	SpringArm->bUsePawnControlRotation = true;
 
 	CharacterAttributes = CreateDefaultSubobject<UCharacterAttributes>("Atributos");
+
+	ReloadEmote = CreateDefaultSubobject<UPaperFlipbookComponent>("ReloadEmote");
+	ReloadEmote->SetupAttachment(RootComponent);
+
+	QuickReloadEmote = CreateDefaultSubobject<UPaperFlipbookComponent>("QuickReloadEmote");
+	QuickReloadEmote->SetupAttachment(ReloadEmote);
 	
 	CurrentWeaponState = EPlayerWeaponSelected::EPWS_Pistol;
 }
@@ -60,6 +67,12 @@ void APlayerTemplate::BeginPlay()
 	if (!MainHUD) UE_LOG(LogTemp, Error, TEXT("El HUD no esta o no es el correcto. Debe ser BP_MainHUD."));
 	
 	SpawnWeapon();
+	QuickReloadEmote->SetVisibility(false);
+	QuickReloadEmote->SetLooping(false);
+
+	ReloadEmote->SetVisibility(false);
+	ReloadEmote->SetLooping(false);
+	ReloadEmote->OnFinishedPlaying.AddDynamic(this, &APlayerTemplate::OnReloadTimeOut);
 }
 
 void APlayerTemplate::MirarRaton(const FInputActionValue& Value)
@@ -92,6 +105,35 @@ void APlayerTemplate::MovimientoVertical(const FInputActionValue& Value)
 	AddMovementInput( GetTransform().GetRotation().GetRightVector(), Value.Get<float>());
 }
 
+void APlayerTemplate::LlamarRecargar()
+{
+	if (!CharacterAttributes) return;
+
+	//Recarga especial
+	if (ReloadEmote->IsPlaying() && !CanQuickReload) return; 
+	
+	if (ReloadEmote->IsPlaying() && CanQuickReload)
+	{
+		CanQuickReload = false;
+		bool IsQuickReload = ReloadEmote->GetPlaybackPosition() > ReloadThreshold && ReloadEmote->GetPlaybackPosition() < ReloadThreshold + QuickReloadSize;
+		//LOG("¿Recarga exitosa?: %s", IsQuickReload ? TEXT("True") : TEXT("False"));
+		if (IsQuickReload)
+		{
+			OnReloadTimeOut();
+		}else
+		{
+			ReloadEmote->SetSpriteColor(FLinearColor::Red);
+			QuickReloadEmote->SetSpriteColor(FLinearColor::Red);
+		}
+		return;
+	}
+
+	PlaceRngQuickReload();
+	QuickReloadEmote->SetVisibility(true);
+	ReloadEmote->PlayFromStart();
+	ReloadEmote->SetVisibility(true);
+}
+
 void APlayerTemplate::Saltar()
 {
 	if (!Controller) return;
@@ -102,6 +144,7 @@ void APlayerTemplate::Saltar()
 
 void APlayerTemplate::Disparar()
 {
+	if (ReloadEmote->IsPlaying()) return;
 	if (CharacterAttributes->GetBalasActuales() <= 0) return;
 	if (GetWorldTimerManager().IsTimerActive(TimerHandle_Disparo)) return;
 	
@@ -150,6 +193,44 @@ void APlayerTemplate::OnTimerCdOut()
 	GetWorldTimerManager().ClearTimer(TimerHandle_Disparo);
 }
 
+float APlayerTemplate::PlaceRngQuickReload()
+{
+	TArray ValoresPosibles = { -66.0f, 0.0f, 100.0f };
+	float Resultado = ValoresPosibles[FMath::RandHelper(ValoresPosibles.Num())];
+	FVector NuevaPosicion = QuickReloadEmote->GetRelativeLocation();
+
+	NuevaPosicion.X = Resultado; 
+	QuickReloadEmote->SetRelativeLocation(NuevaPosicion);
+
+	if (Resultado == -66.0f)
+	{
+		ReloadThreshold = 0.3f;
+	}else if (Resultado == 0.0f)
+	{
+		ReloadThreshold = 0.8f;
+	}
+	else
+	{
+		ReloadThreshold = 1.3f;
+	}
+	
+	return Resultado;
+}
+
+void APlayerTemplate::OnReloadTimeOut()
+{
+	CharacterAttributes->Recargar();
+	MainHUD->UpdateUIInfo(CharacterAttributes);
+
+	CanQuickReload = true;
+
+	QuickReloadEmote->SetVisibility(false);
+	ReloadEmote->SetVisibility(false);
+	ReloadEmote->SetSpriteColor(FLinearColor::White);
+	QuickReloadEmote->SetSpriteColor(FLinearColor::White);
+	ReloadEmote->Stop();
+}
+
 FRotator APlayerTemplate::GetPlayerCameraBoomYawRotation() const
 {
 	return FRotator(0,SpringArm->GetTargetRotation().Yaw,0);
@@ -190,6 +271,7 @@ void APlayerTemplate::SetupPlayerInputComponent(UInputComponent* PlayerInputComp
 		EnhancedInputComponent->BindAction(IA_MirarRaton, ETriggerEvent::Triggered, this, &APlayerTemplate::MirarRaton);
 		EnhancedInputComponent->BindAction(IA_Saltar, ETriggerEvent::Triggered, this, &APlayerTemplate::Saltar);
 		EnhancedInputComponent->BindAction(IA_Disparar, ETriggerEvent::Triggered, this, &APlayerTemplate::Disparar);
+		EnhancedInputComponent->BindAction(IA_Recargar, ETriggerEvent::Triggered, this, &APlayerTemplate::LlamarRecargar);
 	}
 
 }

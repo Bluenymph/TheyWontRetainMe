@@ -34,13 +34,13 @@ void AMainHUD::UpdateUIInfo(UCharacterAttributes* Atributos)
 		FText MaxAmmo = FText::AsNumber(Atributos->GetMaxBalas());
 		
 		FText HealthFinal = FText::Format(
-			NSLOCTEXT("MiJuego", "AmmoKey", "Vida: {Actual} de {Total}"),
+			NSLOCTEXT("MiJuego", "AmmoKey", "Vida: {0} de {1}"),
 			Health,
 			MaxHealth
 		);
 		
 		FText AmmoFinal = FText::Format(
-			NSLOCTEXT("MiJuego", "AmmoKey", "Munición: {Actual} de {Total}"),
+			NSLOCTEXT("MiJuego", "AmmoKey", "Municion: {0} de {1}"),
 			Ammo,
 			MaxAmmo
 		);
