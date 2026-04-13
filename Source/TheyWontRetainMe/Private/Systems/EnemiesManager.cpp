@@ -2,9 +2,11 @@
 #include "LogMacros.h"
 #include "Actors/ObstacleActor.h"
 #include "Characters/EnemyTemplate.h"
+#include "Components/CharacterAttributes.h"
 #include "Interfaces/EnemyInterface.h"
 #include "Kismet/GameplayStatics.h"
 #include "Kismet/KismetMathLibrary.h"
+
 
 void UEnemiesManager::PrewarmEnemyPool(TSubclassOf<AEnemyTemplate> EnemyClass, int32 Amount)
 {
@@ -37,7 +39,6 @@ AEnemyTemplate* UEnemiesManager::GetEnemyFromPool(TSubclassOf<AEnemyTemplate> En
 	FEnemyPool& Pool = EnemyPoolMap.FindOrAdd(EnemyClass);
 	AEnemyTemplate* EnemyToUse = nullptr;
 
-	//Hay alguna bala libre en la piscina?
 	if (Pool.InactiveEnemies.Num() > 0)
 	{
 		EnemyToUse = Pool.InactiveEnemies.Pop();
@@ -55,6 +56,7 @@ AEnemyTemplate* UEnemiesManager::GetEnemyFromPool(TSubclassOf<AEnemyTemplate> En
 	{
 		//La movemos a su sitio y la activamos mediante la Interfaz
 		EnemyToUse->SetActorLocationAndRotation(Location, Rotation);
+		EnemyToUse->GetCharacterAttributes()->SetVidaActual(EnemyToUse->GetCharacterAttributes()->GetVidaMaxima());
 		
 		//Llamamos a la función de la interfaz para activarla
 		IEnemyInterface::Execute_OnActivateEnemy(EnemyToUse,Location,Rotation);
@@ -67,13 +69,10 @@ AEnemyTemplate* UEnemiesManager::GetEnemyFromPool(TSubclassOf<AEnemyTemplate> En
 void UEnemiesManager::ReturnEnemyToPool(AEnemyTemplate* Enemy)
 {
 	if (!Enemy) return;
-	
-	//Desactivamos la bala para que no de por culo
-	IEnemyInterface::Execute_OnDeactivateEnemy(Enemy);
 
-	//Guardamos la bala en la piscina
 	FEnemyPool& Pool = EnemyPoolMap.FindOrAdd(Enemy->GetClass());
 	Pool.InactiveEnemies.Add(Enemy);
+	ActiveEnemies.Remove(Enemy);
 }
 
 void UEnemiesManager::Deinitialize()
@@ -97,6 +96,27 @@ void UEnemiesManager::BeginManageEnemiesLoop()
 			1.0f,
 			true
 		);
+
+		World->GetTimerManager().SetTimer(
+			TimerHandle_ManageEnemies,
+			this,
+			&UEnemiesManager::ManageEnemies,
+			0.02f,
+			true
+			);
+	}
+}
+
+void UEnemiesManager::ManageEnemies()
+{
+	if (!PlayerPawn) return;
+
+	float DeltaTime = GetWorld()->GetDeltaSeconds(); 
+	
+	for (int32 i = ActiveEnemies.Num() - 1; i >= 0; --i)
+	{
+		AEnemyTemplate* Enemy = ActiveEnemies[i];
+		Enemy->UpdateMovement(PlayerPawn, DeltaTime);
 	}
 }
 
@@ -104,7 +124,6 @@ void UEnemiesManager::BeginManageEnemiesLoop()
 void UEnemiesManager::SpawnEnemiesLoop()
 {
 	if (!PlayerPawn) return;
-	//LOG("Ciclando enemigos... Posicion del player %f,%f", PlayerPawn->GetActorLocation().X, PlayerPawn->GetActorLocation().Y);
 
 	FVector SpawnPos;
 	FRotator SpawnRot;
@@ -114,6 +133,7 @@ void UEnemiesManager::SpawnEnemiesLoop()
 		int32 RandomIndex = FMath::RandRange(0, EnemiesToSpawn.Num() - 1);
 		GetEnemyFromPool(EnemiesToSpawn[RandomIndex], SpawnPos, SpawnRot);
 	}
+	ManageEnemies();
 }
 
 void UEnemiesManager::StopSpawnEnemiesLoop()

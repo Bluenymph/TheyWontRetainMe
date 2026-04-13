@@ -31,7 +31,7 @@ public:
 	UFUNCTION(BlueprintCallable)
 	void PrewarmEnemyPool(TSubclassOf<AEnemyTemplate> EnemyClass, int32 Amount); 
 
-	//Devuelve un enemigo del pool. Si no hay, lo crea.
+	//Coge un enemigo del pool. Si no hay, lo crea.
 	UFUNCTION(BlueprintCallable)
 	AEnemyTemplate* GetEnemyFromPool(TSubclassOf<AEnemyTemplate> EnemyClass, FVector Location, FRotator Rotation);
 
@@ -40,6 +40,9 @@ public:
 
 	UFUNCTION(BlueprintCallable)
 	void BeginManageEnemiesLoop();
+
+	UFUNCTION(BlueprintCallable)
+	void ManageEnemies();
 
 	void Deinitialize() override;
 
@@ -50,6 +53,8 @@ public:
 	TArray<TSubclassOf<AEnemyTemplate>>  EnemiesToSpawn;
 
 private:
+	FTimerHandle TimerHandle_ManageEnemies;
+	
 	UPROPERTY()
 	APawn* PlayerPawn;
 

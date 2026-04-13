@@ -72,7 +72,11 @@ void APlayerTemplate::BeginPlay()
 
 	ReloadEmote->SetVisibility(false);
 	ReloadEmote->SetLooping(false);
-	ReloadEmote->OnFinishedPlaying.AddDynamic(this, &APlayerTemplate::OnReloadTimeOut);
+
+	if (!ReloadEmote->OnFinishedPlaying.IsAlreadyBound(this, &APlayerTemplate::OnReloadTimeOut))
+	{
+		ReloadEmote->OnFinishedPlaying.AddDynamic(this, &APlayerTemplate::OnReloadTimeOut);
+	}
 }
 
 void APlayerTemplate::MirarRaton(const FInputActionValue& Value)

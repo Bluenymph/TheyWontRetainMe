@@ -6,6 +6,7 @@
 #include "Interfaces/HiteableInterface.h"
 #include "EnemyTemplate.generated.h"
 
+class UFloatingPawnMovement;
 class UCapsuleComponent;
 class UStaticMeshComponent;
 class UCharacterAttributes;
@@ -22,7 +23,16 @@ public:
 	void OnActivateEnemy_Implementation(FVector Position, FRotator Rotation) override;
 	void OnDeactivateEnemy_Implementation() override;
 
+	void UpdateMovement(APawn* Player, float DeltaTime);
+
+	FORCEINLINE UCharacterAttributes* GetCharacterAttributes() { return CharacterAttributes; }
+
 protected:
+	UFUNCTION()
+	void AdjustLocationToGround(FVector& OutLocation, FVector& OutNormal);
+
+	UFUNCTION()
+	void AdjustRotationToGround(const FVector& Direction, const FVector& GroundNormal, float DeltaTime);
 	
 	UPROPERTY(BlueprintReadWrite, EditAnywhere)
 	UCapsuleComponent* CapsuleComponent;
@@ -39,6 +49,16 @@ protected:
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Comportamiento")
 	float DistanciaAtaque = 3.f;
 	
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category= "Atributos")
+	float StoppingDistance = 150.f;
+
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category= "Atributos")
+	float Speed = 400.0f;
+	
+	UPROPERTY(BlueprintReadWrite, EditAnywhere)
+	UFloatingPawnMovement* FloatingPawnMovement;
+	
 private:
 	const float MAX_VELOCITY = 1000.f;
+	float ZOffset = 10.f; 
 };
