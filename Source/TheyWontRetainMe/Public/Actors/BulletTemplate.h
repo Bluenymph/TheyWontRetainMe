@@ -23,7 +23,7 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
 	UProjectileMovementComponent* ProjectileMovement;
 
-	virtual void OnActivateBullet_Implementation(FVector ShootDirection, float Speed) override;
+	virtual void OnActivateBullet_Implementation(FVector ShootDirection, float Damage, float Speed) override;
 	virtual void OnDeactivateBullet_Implementation() override;
 	
 	UFUNCTION(BlueprintCallable)
@@ -36,4 +36,11 @@ protected:
 
 	UFUNCTION(BlueprintCallable)
 	virtual void OnHit(UPrimitiveComponent* HitComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, FVector NormalImpulse, const FHitResult& Hit);
+	
+private:
+	UPROPERTY()
+	float BulletDamage = 1.f;
+
+public:
+	FORCEINLINE void SetBulletDamage(float Damage) { BulletDamage = Damage; }
 };

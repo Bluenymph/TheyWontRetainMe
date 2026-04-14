@@ -4,6 +4,7 @@
 #include "GameFramework/GameModeBase.h"
 #include "ModoJuego.generated.h"
 
+class AEnemyTemplate;
 class ABulletTemplate;
 
 /**
@@ -20,4 +21,7 @@ protected:
 	UPROPERTY(BlueprintReadWrite, EditAnywhere)
 	TArray<TSubclassOf<ABulletTemplate>>  BulletsToLoad;
 	
+	UPROPERTY(BlueprintReadWrite, EditAnywhere)
+	TArray<TSubclassOf<AEnemyTemplate>>  EnemiesToLoad;
+
 };

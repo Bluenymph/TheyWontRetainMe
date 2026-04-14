@@ -1,6 +1,4 @@
 #include "Actors/WeaponTemplate.h"
-#include "NiagaraFunctionLibrary.h"
-#include "NiagaraComponent.h"
 #include "LogMacros.h"
 
 AWeaponTemplate::AWeaponTemplate()
