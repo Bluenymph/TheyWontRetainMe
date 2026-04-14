@@ -116,8 +116,38 @@ void UEnemiesManager::ManageEnemies()
 	for (int32 i = ActiveEnemies.Num() - 1; i >= 0; --i)
 	{
 		AEnemyTemplate* Enemy = ActiveEnemies[i];
+		
 		Enemy->UpdateMovement(PlayerPawn, DeltaTime);
 	}
+}
+
+AEnemyTemplate* UEnemiesManager::GetEnemyUnderTarget()
+{
+	if (!PlayerPawn) return nullptr;
+	
+	AEnemyTemplate* BestTarget = nullptr;
+	float BestScore = -1.0f; // El Dot Product va de -1 a 1
+	const float Accuracy = 0.97f;
+
+	for (int32 i = ActiveEnemies.Num() - 1; i >= 0; --i)
+	{
+		AEnemyTemplate* Enemy = ActiveEnemies[i];
+		FVector DirToEnemy = (Enemy->GetActorLocation() - PlayerPawn->GetActorLocation()).GetSafeNormal();
+		float Distance = FVector::Dist(Enemy->GetActorLocation(), PlayerPawn->GetActorLocation());
+		float CurrentDot = FVector::DotProduct(PlayerPawn->GetActorForwardVector(), DirToEnemy);
+
+		if (CurrentDot > Accuracy)
+		{
+			float CurrentScore = CurrentDot / (Distance * 0.001f);
+			
+			if (CurrentScore > BestScore)
+			{
+				BestScore = CurrentScore;
+				BestTarget = Enemy;
+			}
+		}
+	}
+	return BestTarget;
 }
 
 

@@ -44,6 +44,9 @@ public:
 	UFUNCTION(BlueprintCallable)
 	void ManageEnemies();
 
+	UFUNCTION(BlueprintCallable)
+	AEnemyTemplate* GetEnemyUnderTarget();
+
 	void Deinitialize() override;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)

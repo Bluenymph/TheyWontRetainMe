@@ -7,8 +7,10 @@
 #include "GameFramework/CharacterMovementComponent.h"
 #include "GameFramework/SpringArmComponent.h"
 #include "Actors/WeaponTemplate.h"
+#include "Characters/EnemyTemplate.h"
 #include "Components/CharacterAttributes.h"
 #include "HUD/MainHUD.h"
+#include "Systems/EnemiesManager.h"
 
 APlayerTemplate::APlayerTemplate()
 {
