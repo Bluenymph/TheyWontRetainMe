@@ -33,7 +33,7 @@ public:
 	void PrewarmPool(TSubclassOf<ABulletTemplate> BulletClass, int32 Amount); //Instanciamos unas cuantas balas al principio
 	
 	UFUNCTION(BlueprintCallable, Category = "Combat")
-	ABulletTemplate* GetBulletFromPool(TSubclassOf<ABulletTemplate> BulletClass, FVector Location, FRotator Rotation);
+	ABulletTemplate* GetBulletFromPool(TSubclassOf<ABulletTemplate> BulletClass, FVector Location, FRotator Rotation, float Damage);
 
 	UFUNCTION(BlueprintCallable, Category = "Combat")
 	void ReturnBulletToPool(ABulletTemplate* Bullet);
