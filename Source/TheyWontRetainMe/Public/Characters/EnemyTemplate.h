@@ -6,10 +6,14 @@
 #include "Interfaces/HiteableInterface.h"
 #include "EnemyTemplate.generated.h"
 
+class UPecadorAnimInstance;
 class UFloatingPawnMovement;
 class UCapsuleComponent;
 class UStaticMeshComponent;
 class UCharacterAttributes;
+class USkeletalMeshComponent;
+
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnEnemyAttack, bool, bIsAttack);
 
 UCLASS()
 class THEYWONTRETAINME_API AEnemyTemplate : public APawn, public IHiteableInterface, public  IEnemyInterface
@@ -25,6 +29,9 @@ public:
 
 	void UpdateMovement(APawn* Player, float DeltaTime);
 
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+	FOnEnemyAttack OnEnemyAttack;
+
 	FORCEINLINE UCharacterAttributes* GetCharacterAttributes() { return CharacterAttributes; }
 
 protected:
@@ -38,15 +45,15 @@ protected:
 	UCapsuleComponent* CapsuleComponent;
 	
 	UPROPERTY(BlueprintReadWrite, EditAnywhere)
-	UStaticMeshComponent* Mesh;
+	USkeletalMeshComponent* SkeletalMeshComponent;
 
-	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category= "Atributos")
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category= "Referencias")
 	UCharacterAttributes* CharacterAttributes;
 	
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Atributos")
 	float Velocidad = 100.f;
 	
-	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Comportamiento")
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Atributos")
 	float DistanciaAtaque = 3.f;
 	
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category= "Atributos")

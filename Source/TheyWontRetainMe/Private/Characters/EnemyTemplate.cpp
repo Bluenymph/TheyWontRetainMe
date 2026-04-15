@@ -3,6 +3,7 @@
 #include "Components/CapsuleComponent.h"
 #include "Components/CharacterAttributes.h"
 #include "Components/StaticMeshComponent.h"
+#include "Components/SkeletalMeshComponent.h"
 #include "GameFramework/FloatingPawnMovement.h"
 #include "Systems/EnemiesManager.h"
 
@@ -13,8 +14,8 @@ AEnemyTemplate::AEnemyTemplate()
 	CapsuleComponent = CreateDefaultSubobject<UCapsuleComponent>(TEXT("CapsuleComponent"));
 	RootComponent = CapsuleComponent;
 	
-	Mesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("Mesh"));
-	Mesh->SetupAttachment(CapsuleComponent);
+	SkeletalMeshComponent = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("SkeletalMesh"));
+	SkeletalMeshComponent->SetupAttachment(RootComponent);
 
 	CharacterAttributes = CreateDefaultSubobject<UCharacterAttributes>("Atributos");
 
@@ -55,9 +56,11 @@ void AEnemyTemplate::UpdateMovement(APawn* Player, float DeltaTime)
 
 	FVector CurrentLoc = GetActorLocation();
 	FVector Direction = (Player->GetActorLocation() - CurrentLoc).GetSafeNormal();
-	Direction.Z = 0; 
+	Direction.Z = 0;
 
-	if (FVector::Dist(Player->GetActorLocation(), CurrentLoc) > StoppingDistance)
+	float CurrentDistance = FVector::Dist(Player->GetActorLocation(), CurrentLoc);
+
+	if (CurrentDistance > StoppingDistance)
 	{
 		FVector NextLocation = CurrentLoc + (Direction * Speed * DeltaTime);
 		FVector GroundNormal;
@@ -66,7 +69,9 @@ void AEnemyTemplate::UpdateMovement(APawn* Player, float DeltaTime)
 		AdjustRotationToGround(Direction, GroundNormal, DeltaTime);
 
 		SetActorLocation(NextLocation, true);
-		//SetActorRotation(Direction.Rotation());
+	}else
+	{
+		OnEnemyAttack.Broadcast(true);
 	}
 }
 
