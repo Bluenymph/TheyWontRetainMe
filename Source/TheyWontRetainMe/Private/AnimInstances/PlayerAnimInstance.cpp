@@ -4,6 +4,7 @@
 #include "Actors/WeaponTemplate.h"
 #include "Characters/PlayerTemplate.h"
 #include "Systems/BulletPoolSubsystem.h"
+#include "GameFramework/CharacterMovementComponent.h"
 
 void UPlayerAnimInstance::NativeUpdateAnimation(float DeltaSeconds)
 {
@@ -13,9 +14,6 @@ void UPlayerAnimInstance::NativeUpdateAnimation(float DeltaSeconds)
 	{
 		CurrentMovementState = PlayerCharacter->GetPlayerMovementState();
 		CurrentActionState = PlayerCharacter->GetPlayerActionState();
-		
-		//Debug para mostrar los estados de animacion
-		//LOG("Cambiando estado a: %s", *StaticEnum<EPlayerMovementState>()->GetNameStringByValue((int64)CurrentMovementState));
 	}
 	
 	
@@ -53,6 +51,28 @@ void UPlayerAnimInstance::ActualizarEstadoDisparo(bool bNuevoEstado)
 	else ManoDisparo = 1;
 	
 	Disparar();
+}
+
+void UPlayerAnimInstance::AnimNotify_FinDeAnimacion()
+{
+	if (PlayerCharacter)
+	{
+		PlayerCharacter->GetPlayerMovementState() = EPlayerMovementState::EPMS_Idle;
+		PlayerCharacter->GetCanChangeAnimation() = true;
+		
+		PlayerCharacter->GetCharacterMovement()->BrakingDecelerationWalking = PlayerCharacter->GetOriginalBraking();
+		PlayerCharacter->GetCharacterMovement()->GroundFriction = PlayerCharacter->GetOriginalFriction();
+		PlayerCharacter->GetMesh()->SetRelativeRotation(FRotator(0.f, -90.f, 0.f));
+	}
+}
+
+void UPlayerAnimInstance::AnimNotify_FinDeEsquive()
+{
+	if (PlayerCharacter)
+	{
+		PlayerCharacter->BeginDodgeTimer();
+		LOG("HEHE")
+	}
 }
 
 void UPlayerAnimInstance::Disparar()
