@@ -6,6 +6,7 @@
 #include "Interfaces/HiteableInterface.h"
 #include "PlayerTemplate.generated.h"
 
+class UAbilityData;
 class AMainHUD;
 class UUserInterface;
 class ABulletTemplate;
@@ -61,6 +62,9 @@ protected:
 	
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Propiedades")
 	float TiempoInvencible = 2.5f;
+	
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Propiedades")
+	UAbilityData* TestData;
 	
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Referencias")
 	TSubclassOf<AWeaponTemplate> WeaponClass;
@@ -218,6 +222,8 @@ public:
 	FORCEINLINE float GetOriginalBraking() const { return OriginalBraking; }
 	FORCEINLINE float GetOriginalFriction() const { return OriginalFriction; }
 	FORCEINLINE UMaterialInstanceDynamic* GetDynamicMaterial_Mesh() const { return DynamicMaterial_Mesh; }
+	FORCEINLINE float GetCadenciaDisparo() const { return CadenciaDisparo; }
+	FORCEINLINE void SetCadenciaDisparo(float NewCadency) { CadenciaDisparo = NewCadency; }
 	
 
 };

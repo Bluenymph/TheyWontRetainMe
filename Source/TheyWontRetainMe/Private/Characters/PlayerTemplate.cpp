@@ -11,7 +11,9 @@
 #include "Components/CapsuleComponent.h"
 #include "Components/CharacterAttributes.h"
 #include "HUD/MainHUD.h"
+#include "DataAsset/AbilityData.h"
 #include "Materials/MaterialInstanceDynamic.h"
+#include "Systems/AbilitiesManager.h"
 
 APlayerTemplate::APlayerTemplate()
 {
@@ -138,7 +140,7 @@ void APlayerTemplate::MovimientoVertical(const FInputActionValue& Value)
 void APlayerTemplate::LlamarRecargar()
 {
 	if (!CharacterAttributes) return;
-
+	
 	//Recarga especial
 	if (ReloadEmote->IsPlaying() && !CanQuickReload) return; 
 	
@@ -162,6 +164,9 @@ void APlayerTemplate::LlamarRecargar()
 	QuickReloadEmote->SetVisibility(true);
 	ReloadEmote->PlayFromStart();
 	ReloadEmote->SetVisibility(true);
+	
+	UAbilitiesManager* TestManager = GetWorld()->GetSubsystem<UAbilitiesManager>();
+	if (TestManager) TestManager->AddAbilityFromData(TestData);
 }
 
 void APlayerTemplate::Saltar()

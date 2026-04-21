@@ -11,11 +11,12 @@ class THEYWONTRETAINME_API AAbilityTemplate : public AActor
 	
 public:	
 	AAbilityTemplate();
-	virtual void Tick(float DeltaTime) override;
 
 protected:
 	virtual void BeginPlay() override;
-	
 
+	UPROPERTY(BlueprintReadWrite, EditAnywhere)
+	FString CodigoHabilidad;
+	
 
 };
