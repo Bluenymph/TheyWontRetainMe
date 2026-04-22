@@ -8,9 +8,12 @@
 #include "GameFramework/SpringArmComponent.h"
 #include "Actors/WeaponTemplate.h"
 #include "Characters/EnemyTemplate.h"
+#include "Components/CapsuleComponent.h"
 #include "Components/CharacterAttributes.h"
 #include "HUD/MainHUD.h"
-#include "Systems/EnemiesManager.h"
+#include "DataAsset/AbilityData.h"
+#include "Materials/MaterialInstanceDynamic.h"
+#include "Systems/AbilitiesManager.h"
 
 APlayerTemplate::APlayerTemplate()
 {
@@ -43,6 +46,20 @@ void APlayerTemplate::CambiarCadenciaDisparo(const float NuevaCadencia)
 	else CadenciaDisparo = NuevaCadencia;
 }
 
+void APlayerTemplate::OnHitReceived_Implementation(float Damage)
+{
+	IHiteableInterface::OnHitReceived_Implementation(Damage);
+	
+	if (!CanTakeDmg) return;
+	
+	CanTakeDmg = false;
+	CharacterAttributes->AttributesTakeDmg(Damage);
+	
+	GetWorldTimerManager().SetTimer(TimerHandle_Invincible, this, &APlayerTemplate::OnInvincibleCD, TiempoInvencible, false);
+	
+	PlayerRecibirGolpe();
+}
+
 void APlayerTemplate::BeginPlay()
 {
 	Super::BeginPlay();
@@ -63,7 +80,12 @@ void APlayerTemplate::BeginPlay()
 			PC->PlayerCameraManager->ViewPitchMax = 20.0f; 
 			PC->PlayerCameraManager->ViewPitchMin = -20.0f; 
 		}
+		
+		OriginalBraking = GetCharacterMovement()->BrakingDecelerationWalking;
+		OriginalFriction = GetCharacterMovement()->GroundFriction;
 	}
+	
+	GetCapsuleComponent()->OnComponentHit.AddDynamic(this, &APlayerTemplate::OnHit);
 
 	MainHUD = Cast<AMainHUD>(GetWorld()->GetFirstPlayerController()->GetHUD());
 	if (!MainHUD) UE_LOG(LogTemp, Error, TEXT("El HUD no esta o no es el correcto. Debe ser BP_MainHUD."));
@@ -79,6 +101,10 @@ void APlayerTemplate::BeginPlay()
 	{
 		ReloadEmote->OnFinishedPlaying.AddDynamic(this, &APlayerTemplate::OnReloadTimeOut);
 	}
+	if (GetMesh())
+	{
+		DynamicMaterial_Mesh = GetMesh()->CreateDynamicMaterialInstance(0);
+	}
 }
 
 void APlayerTemplate::MirarRaton(const FInputActionValue& Value)
@@ -91,7 +117,7 @@ void APlayerTemplate::MirarRaton(const FInputActionValue& Value)
 
 void APlayerTemplate::MovimientoFrontal(const FInputActionValue& Value)
 {
-	if (!Controller) return;
+	if (!Controller || !CanChangeAnimation) return;
 	float ParsedValue = Value.Get<float>();
 	
 	if (ParsedValue > 0.0f) PlayerMovementState = EPlayerMovementState::EPMS_WalkingForwards;
@@ -102,7 +128,7 @@ void APlayerTemplate::MovimientoFrontal(const FInputActionValue& Value)
 
 void APlayerTemplate::MovimientoVertical(const FInputActionValue& Value)
 {
-	if (!Controller) return;
+	if (!Controller || !CanChangeAnimation) return;
 	float ParsedValue = Value.Get<float>();
 	
 	if (ParsedValue > 0.0f) PlayerMovementState = EPlayerMovementState::EPMS_StrafeRight;
@@ -114,7 +140,7 @@ void APlayerTemplate::MovimientoVertical(const FInputActionValue& Value)
 void APlayerTemplate::LlamarRecargar()
 {
 	if (!CharacterAttributes) return;
-
+	
 	//Recarga especial
 	if (ReloadEmote->IsPlaying() && !CanQuickReload) return; 
 	
@@ -138,18 +164,23 @@ void APlayerTemplate::LlamarRecargar()
 	QuickReloadEmote->SetVisibility(true);
 	ReloadEmote->PlayFromStart();
 	ReloadEmote->SetVisibility(true);
+	
+	UAbilitiesManager* TestManager = GetWorld()->GetSubsystem<UAbilitiesManager>();
+	if (TestManager) TestManager->AddAbilityFromData(TestData);
 }
 
 void APlayerTemplate::Saltar()
 {
-	if (!Controller) return;
-	
+	if (!Controller || !CanChangeAnimation || !CanDodge) return;
+	CanChangeAnimation = false;
+	CanDodge = false;
 	PlayerMovementState = EPlayerMovementState::EPMS_Jumping;
-	Jump();
+	Esquivar();
 }
 
 void APlayerTemplate::Disparar()
 {
+	if (!Controller ||!CanChangeAnimation) return;
 	if (ReloadEmote->IsPlaying()) return;
 	if (CharacterAttributes->GetBalasActuales() <= 0) return;
 	if (GetWorldTimerManager().IsTimerActive(TimerHandle_Disparo)) return;
@@ -161,6 +192,40 @@ void APlayerTemplate::Disparar()
 	CharacterAttributes->SetBalasActuales(CharacterAttributes->GetBalasActuales() - 1);
 	
 	MainHUD->UpdateUIInfo(CharacterAttributes);
+}
+
+void APlayerTemplate::SoltarBoton()
+{
+	if (CanChangeAnimation) PlayerMovementState = EPlayerMovementState::EPMS_Idle;
+}
+
+void APlayerTemplate::PlayerRecibirGolpe()
+{
+	CanChangeAnimation = false;
+	PlayerMovementState = EPlayerMovementState::EPMS_Hurt;
+	
+	DynamicMaterial_Mesh->SetScalarParameterValue("Invencible", 1.f);
+	
+	Jump();
+}
+
+void APlayerTemplate::OnHit(UPrimitiveComponent* HitComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp,
+                            FVector NormalImpulse, const FHitResult& Hit)
+{
+	if (!CanTakeDmg) return;
+	
+	if (OtherActor && OtherActor != this)
+	{
+		if (OtherActor->GetClass()->ImplementsInterface(UEnemyInterface::StaticClass()))
+		{
+			CanTakeDmg = false;
+			CharacterAttributes->AttributesTakeDmg(20.f);
+	
+			GetWorldTimerManager().SetTimer(TimerHandle_Invincible, this, &APlayerTemplate::OnInvincibleCD, TiempoInvencible, false);
+
+			PlayerRecibirGolpe();
+		}
+	}
 }
 
 void APlayerTemplate::SpawnWeapon()
@@ -194,9 +259,42 @@ void APlayerTemplate::SpawnWeapon()
 	}
 }
 
+void APlayerTemplate::Esquivar()
+{
+	FVector RollDirection = GetLastMovementInputVector();
+	
+
+	if (RollDirection.IsNearlyZero())
+	{
+		RollDirection = GetActorForwardVector();
+	}
+
+	FVector LaunchVelocity = RollDirection.GetSafeNormal() * VelocidadEsquive;
+	LaunchVelocity.Z = 150.f; 
+	
+	FRotator TargetRotation = RollDirection.Rotation();
+    
+	TargetRotation.Yaw -= 90.f; 
+	TargetRotation.Pitch = 0.f;
+	TargetRotation.Roll = 0.f;
+
+	GetMesh()->SetWorldRotation(TargetRotation);
+
+	GetCharacterMovement()->BrakingDecelerationWalking = 0.f;
+	GetCharacterMovement()->GroundFriction = 0.5f;
+	
+	LaunchCharacter(LaunchVelocity, true, false);
+}
+
 void APlayerTemplate::OnTimerCdOut()
 {
 	GetWorldTimerManager().ClearTimer(TimerHandle_Disparo);
+}
+
+void APlayerTemplate::OnInvincibleCD()
+{
+	CanTakeDmg = true;
+	DynamicMaterial_Mesh->SetScalarParameterValue("Invencible", 0.f);
 }
 
 float APlayerTemplate::PlaceRngQuickReload()
@@ -259,12 +357,11 @@ AWeaponTemplate* APlayerTemplate::GetPlayerCurrentSecondaryWeapon()
 	return nullptr;
 }
 
-
-void APlayerTemplate::Tick(float DeltaTime)
+void APlayerTemplate::BeginDodgeTimer()
 {
-	Super::Tick(DeltaTime);
-	PlayerMovementState = EPlayerMovementState::EPMS_Idle;
+	GetWorldTimerManager().SetTimer(TimerHandle_Esquivar,this,&APlayerTemplate::OnDodgeCD,CadenciaEsquiva,false);
 }
+
 
 void APlayerTemplate::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 {
@@ -273,7 +370,11 @@ void APlayerTemplate::SetupPlayerInputComponent(UInputComponent* PlayerInputComp
 	if (UEnhancedInputComponent* EnhancedInputComponent = CastChecked<UEnhancedInputComponent>(PlayerInputComponent))
 	{
 		EnhancedInputComponent->BindAction(IA_MovimientoFrontal, ETriggerEvent::Triggered,this, &APlayerTemplate::MovimientoFrontal);
+		EnhancedInputComponent->BindAction(IA_MovimientoFrontal, ETriggerEvent::Completed,this, &APlayerTemplate::SoltarBoton);
+		
 		EnhancedInputComponent->BindAction(IA_MovimientoVertical, ETriggerEvent::Triggered,this, &APlayerTemplate::MovimientoVertical);
+		EnhancedInputComponent->BindAction(IA_MovimientoVertical, ETriggerEvent::Completed,this, &APlayerTemplate::SoltarBoton);
+		
 		EnhancedInputComponent->BindAction(IA_MirarRaton, ETriggerEvent::Triggered, this, &APlayerTemplate::MirarRaton);
 		EnhancedInputComponent->BindAction(IA_Saltar, ETriggerEvent::Triggered, this, &APlayerTemplate::Saltar);
 		EnhancedInputComponent->BindAction(IA_Disparar, ETriggerEvent::Triggered, this, &APlayerTemplate::Disparar);

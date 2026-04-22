@@ -33,6 +33,12 @@ protected:
 	UPROPERTY(EditAnywhere, Category = "Animation")
 	UAnimMontage* DerechaFuegoMontage;
 	
+	UFUNCTION()
+	void AnimNotify_FinDeAnimacion();
+	
+	UFUNCTION()
+	void AnimNotify_FinDeEsquive();
+	
 	UPROPERTY(BlueprintReadOnly, Category = "Animation")
 	int ManoDisparo = 0; //0 izquierda, 1 derecha
 	

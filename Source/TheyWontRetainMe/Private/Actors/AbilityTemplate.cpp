@@ -2,7 +2,7 @@
 
 AAbilityTemplate::AAbilityTemplate()
 {
-	PrimaryActorTick.bCanEverTick = true;
+	PrimaryActorTick.bCanEverTick = false;
 
 }
 
@@ -10,11 +10,5 @@ void AAbilityTemplate::BeginPlay()
 {
 	Super::BeginPlay();
 	
-}
-
-void AAbilityTemplate::Tick(float DeltaTime)
-{
-	Super::Tick(DeltaTime);
-
 }
 
