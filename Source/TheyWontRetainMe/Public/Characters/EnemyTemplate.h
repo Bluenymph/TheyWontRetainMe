@@ -6,10 +6,14 @@
 #include "Interfaces/HiteableInterface.h"
 #include "EnemyTemplate.generated.h"
 
+class UPecadorAnimInstance;
 class UFloatingPawnMovement;
 class UCapsuleComponent;
 class UStaticMeshComponent;
 class UCharacterAttributes;
+class USkeletalMeshComponent;
+class UBoxComponent;
+
 
 UCLASS()
 class THEYWONTRETAINME_API AEnemyTemplate : public APawn, public IHiteableInterface, public  IEnemyInterface
@@ -18,14 +22,19 @@ class THEYWONTRETAINME_API AEnemyTemplate : public APawn, public IHiteableInterf
 
 public:
 	AEnemyTemplate();
+	virtual void BeginPlay() override;
 	
 	void OnHitReceived_Implementation(float Damage) override;
 	void OnActivateEnemy_Implementation(FVector Position, FRotator Rotation) override;
 	void OnDeactivateEnemy_Implementation() override;
 
 	void UpdateMovement(APawn* Player, float DeltaTime);
-
+	
 	FORCEINLINE UCharacterAttributes* GetCharacterAttributes() { return CharacterAttributes; }
+	FORCEINLINE void SetVelocidad(const float NuevaVelocidad) { Velocidad = NuevaVelocidad; }
+	FORCEINLINE float GetVelocidad() const { return Velocidad; }
+	FORCEINLINE float GetMaxVelocidad() const { return MaxVelocidad; }
+	FORCEINLINE UBoxComponent* GetHitComponent() { return HitComponent; }
 
 protected:
 	UFUNCTION()
@@ -38,27 +47,34 @@ protected:
 	UCapsuleComponent* CapsuleComponent;
 	
 	UPROPERTY(BlueprintReadWrite, EditAnywhere)
-	UStaticMeshComponent* Mesh;
+	USkeletalMeshComponent* SkeletalMeshComponent;
 
-	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category= "Atributos")
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category= "Referencias")
 	UCharacterAttributes* CharacterAttributes;
 	
-	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Atributos")
-	float Velocidad = 100.f;
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category= "Referencias")
+	UBoxComponent* HitComponent;
 	
-	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Comportamiento")
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Atributos")
 	float DistanciaAtaque = 3.f;
 	
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category= "Atributos")
 	float StoppingDistance = 150.f;
-
+	
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category= "Atributos")
-	float Speed = 400.0f;
+	float MaxVelocidad = 600.f;
 	
 	UPROPERTY(BlueprintReadWrite, EditAnywhere)
 	UFloatingPawnMovement* FloatingPawnMovement;
 	
+	UFUNCTION()
+	void OnWeaponOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
 private:
-	const float MAX_VELOCITY = 1000.f;
+	UPROPERTY()
+	float Velocidad = 200.f;
+	
+	UPROPERTY()
+	UPecadorAnimInstance* PecadorAnimInstance;
+	
 	float ZOffset = 10.f; 
 };
