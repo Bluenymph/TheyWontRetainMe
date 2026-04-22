@@ -19,6 +19,7 @@ enum class EPlayerMovementState : uint8
 	EPMS_WalkingBackwards UMETA(DisplayName = "Andando hacia atras"),
 	EPMS_StrafeRight UMETA(DisplayName = "Andando hacia derecha"),
 	EPMS_StrafeLeft UMETA(DisplayName = "Andando hacia izquierda"),
+	EPMS_Hurt UMETA(DisplayName = "Herido"),
 	EPMS_Jumping UMETA(DisplayName = "Saltando")
 };
 

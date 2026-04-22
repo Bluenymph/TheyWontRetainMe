@@ -164,6 +164,7 @@ void UEnemiesManager::SpawnEnemiesLoop()
 		GetEnemyFromPool(EnemiesToSpawn[RandomIndex], SpawnPos, SpawnRot);
 	}
 	ManageEnemies();
+	DEBUG(1,FColor::Blue, "%i", ActiveEnemies.Num());
 }
 
 void UEnemiesManager::StopSpawnEnemiesLoop()

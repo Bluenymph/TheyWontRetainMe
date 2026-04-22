@@ -1,8 +1,11 @@
 #include "Characters/EnemyTemplate.h"
 #include "LogMacros.h"
+#include "AnimInstances/PecadorAnimInstance.h"
+#include "Components/BoxComponent.h"
 #include "Components/CapsuleComponent.h"
 #include "Components/CharacterAttributes.h"
 #include "Components/StaticMeshComponent.h"
+#include "Components/SkeletalMeshComponent.h"
 #include "GameFramework/FloatingPawnMovement.h"
 #include "Systems/EnemiesManager.h"
 
@@ -13,24 +16,47 @@ AEnemyTemplate::AEnemyTemplate()
 	CapsuleComponent = CreateDefaultSubobject<UCapsuleComponent>(TEXT("CapsuleComponent"));
 	RootComponent = CapsuleComponent;
 	
-	Mesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("Mesh"));
-	Mesh->SetupAttachment(CapsuleComponent);
+	SkeletalMeshComponent = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("SkeletalMesh"));
+	SkeletalMeshComponent->SetupAttachment(RootComponent);
+	
+	HitComponent = CreateDefaultSubobject<UBoxComponent>("HitComponent");
+	HitComponent->SetupAttachment(SkeletalMeshComponent, "WeaponSocket");
+	HitComponent->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 
 	CharacterAttributes = CreateDefaultSubobject<UCharacterAttributes>("Atributos");
 
 	FloatingPawnMovement = CreateDefaultSubobject<UFloatingPawnMovement>("FloatingPawnMovement");
 }
 
+void AEnemyTemplate::BeginPlay()
+{
+	Super::BeginPlay();
+	
+	PecadorAnimInstance = Cast<UPecadorAnimInstance>(SkeletalMeshComponent->GetAnimInstance());
+	
+	Velocidad = MaxVelocidad;
+	
+	HitComponent->OnComponentBeginOverlap.AddDynamic(this, &AEnemyTemplate::OnWeaponOverlap);
+}
+
 void AEnemyTemplate::OnHitReceived_Implementation(float Damage)
 {
 	IHiteableInterface::OnHitReceived_Implementation(Damage);
 	if (CharacterAttributes->AttributesTakeDmg(Damage) < 0.f)
+	{
 		OnDeactivateEnemy_Implementation();
+	}
+	PecadorAnimInstance->OnAnimEnemyAttacked(CharacterAttributes->GetVidaActual());
+	
 }
 
 void AEnemyTemplate::OnActivateEnemy_Implementation(FVector Position, FRotator Rotation)
 {
 	IEnemyInterface::OnActivateEnemy_Implementation(Position, Rotation);
+	
+	PecadorAnimInstance->SetBehaviourState(EEnemyBehaviourState::EEBS_Idle);
+	SkeletalMeshComponent->SetComponentTickEnabled(true);
+	SkeletalMeshComponent->Activate();
 	
 	SetActorLocationAndRotation(Position, Rotation);
 	SetActorHiddenInGame(false);
@@ -41,6 +67,9 @@ void AEnemyTemplate::OnDeactivateEnemy_Implementation()
 {
 	IEnemyInterface::OnDeactivateEnemy_Implementation();
 
+	SkeletalMeshComponent->SetComponentTickEnabled(false);
+	SkeletalMeshComponent->Deactivate();
+	
 	SetActorLocation(FVector(0, 0, -50000.f)); 
 	SetActorHiddenInGame(true);
 	SetActorEnableCollision(false);
@@ -55,18 +84,23 @@ void AEnemyTemplate::UpdateMovement(APawn* Player, float DeltaTime)
 
 	FVector CurrentLoc = GetActorLocation();
 	FVector Direction = (Player->GetActorLocation() - CurrentLoc).GetSafeNormal();
-	Direction.Z = 0; 
+	Direction.Z = 0;
 
-	if (FVector::Dist(Player->GetActorLocation(), CurrentLoc) > StoppingDistance)
+	float CurrentDistance = FVector::Dist(Player->GetActorLocation(), CurrentLoc);
+
+	if (CurrentDistance > StoppingDistance)
 	{
-		FVector NextLocation = CurrentLoc + (Direction * Speed * DeltaTime);
+		FVector NextLocation = CurrentLoc + (Direction * Velocidad * DeltaTime);
 		FVector GroundNormal;
 		
 		AdjustLocationToGround(NextLocation, GroundNormal);
 		AdjustRotationToGround(Direction, GroundNormal, DeltaTime);
 
 		SetActorLocation(NextLocation, true);
-		//SetActorRotation(Direction.Rotation());
+	}else
+	{
+		Velocidad = 300.f;
+		PecadorAnimInstance->OnAnimEnemyAttack();
 	}
 }
 
@@ -102,4 +136,13 @@ void AEnemyTemplate::AdjustRotationToGround(const FVector& Direction, const FVec
 	FRotator SmoothRot = FMath::RInterpTo(GetActorRotation(), TargetRotation, DeltaTime, 10.f);
     
 	SetActorRotation(SmoothRot);
+}
+
+void AEnemyTemplate::OnWeaponOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor,
+	UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
+{
+	if (OtherActor->ActorHasTag("Player"))
+	{
+		IHiteableInterface::Execute_OnHitReceived(OtherActor,15.f);
+	}
 }
