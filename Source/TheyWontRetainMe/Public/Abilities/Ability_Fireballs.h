@@ -16,5 +16,19 @@ public:
 	virtual void ActivateAbility(AActor* InOwner) override;
 	virtual void TickAbility(float DeltaTime) override;
 	virtual void OnVisualOverlap(AActor* OverlappedActor, AActor* OtherActor) override;
+	
+	UFUNCTION(BlueprintImplementableEvent)
+	void BiggerRadius();
+	
+	UFUNCTION()
+	FORCEINLINE void SetDamage(const float NewDmg) { Damage = NewDmg; }
+	
+	UFUNCTION()
+	FORCEINLINE float GetDamage() { return Damage; }
+	
+	
+protected:
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	float Damage = 10.f;
 
 };

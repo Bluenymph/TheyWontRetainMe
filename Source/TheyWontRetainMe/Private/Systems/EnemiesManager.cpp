@@ -6,6 +6,7 @@
 #include "Interfaces/EnemyInterface.h"
 #include "Kismet/GameplayStatics.h"
 #include "Kismet/KismetMathLibrary.h"
+#include "Systems/GameManager.h"
 
 
 void UEnemiesManager::PrewarmEnemyPool(TSubclassOf<AEnemyTemplate> EnemyClass, int32 Amount)
@@ -70,6 +71,9 @@ void UEnemiesManager::ReturnEnemyToPool(AEnemyTemplate* Enemy)
 {
 	if (!Enemy) return;
 
+	GameManager = GetWorld()->GetGameInstance()->GetSubsystem<UGameManager>();
+	GameManager->AddExp(Enemy->GetExperiencia());
+	
 	FEnemyPool& Pool = EnemyPoolMap.FindOrAdd(Enemy->GetClass());
 	Pool.InactiveEnemies.Add(Enemy);
 	ActiveEnemies.Remove(Enemy);
@@ -148,6 +152,27 @@ AEnemyTemplate* UEnemiesManager::GetEnemyUnderTarget()
 		}
 	}
 	return BestTarget;
+}
+
+FVector UEnemiesManager::GetNearestEnemy(FVector ActorPosition)
+{
+	if (ActiveEnemies.Num() == 0) return FVector::ZeroVector;
+
+	AActor* ClosestEnemy = ActiveEnemies[0];
+	float ClosestDistSq = FVector::DistSquared(ClosestEnemy->GetActorLocation(), ActorPosition);
+
+	for (int32 i = 1; i < ActiveEnemies.Num(); ++i)
+	{
+		float CurrentDistSq = FVector::DistSquared(ActiveEnemies[i]->GetActorLocation(), ActorPosition);
+        
+		if (CurrentDistSq < ClosestDistSq)
+		{
+			ClosestDistSq = CurrentDistSq;
+			ClosestEnemy = ActiveEnemies[i];
+		}
+	}
+    
+	return ClosestEnemy->GetActorLocation();
 }
 
 

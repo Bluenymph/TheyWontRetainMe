@@ -1,6 +1,7 @@
 #include "Characters/EnemyTemplate.h"
 #include "LogMacros.h"
 #include "AnimInstances/PecadorAnimInstance.h"
+#include "Characters/PlayerTemplate.h"
 #include "Components/BoxComponent.h"
 #include "Components/CapsuleComponent.h"
 #include "Components/CharacterAttributes.h"
@@ -8,6 +9,7 @@
 #include "Components/SkeletalMeshComponent.h"
 #include "GameFramework/FloatingPawnMovement.h"
 #include "Systems/EnemiesManager.h"
+#include "Systems/GameManager.h"
 
 AEnemyTemplate::AEnemyTemplate()
 {
@@ -35,19 +37,20 @@ void AEnemyTemplate::BeginPlay()
 	PecadorAnimInstance = Cast<UPecadorAnimInstance>(SkeletalMeshComponent->GetAnimInstance());
 	
 	Velocidad = MaxVelocidad;
-	
+	GameManager = GetGameInstance()->GetSubsystem<UGameManager>();
 	HitComponent->OnComponentBeginOverlap.AddDynamic(this, &AEnemyTemplate::OnWeaponOverlap);
 }
 
-void AEnemyTemplate::OnHitReceived_Implementation(float Damage)
+void AEnemyTemplate::OnHitReceived_Implementation(float Damage, AActor* HitInstigator)
 {
-	IHiteableInterface::OnHitReceived_Implementation(Damage);
+	IHiteableInterface::OnHitReceived_Implementation(Damage, HitInstigator);
 	if (CharacterAttributes->AttributesTakeDmg(Damage) < 0.f)
 	{
 		OnDeactivateEnemy_Implementation();
 	}
 	PecadorAnimInstance->OnAnimEnemyAttacked(CharacterAttributes->GetVidaActual());
 	
+	if (GameManager && HitInstigator->ActorHasTag("Player")) GameManager->CurrentPlayer->OnDamageInflicted(Damage);
 }
 
 void AEnemyTemplate::OnActivateEnemy_Implementation(FVector Position, FRotator Rotation)
@@ -61,6 +64,14 @@ void AEnemyTemplate::OnActivateEnemy_Implementation(FVector Position, FRotator R
 	SetActorLocationAndRotation(Position, Rotation);
 	SetActorHiddenInGame(false);
 	SetActorEnableCollision(true);
+}
+
+void AEnemyTemplate::OnSlowEnemy_Implementation(float TimeAmount)
+{
+	IEnemyInterface::OnSlowEnemy_Implementation(TimeAmount);
+	
+	Velocidad = MaxVelocidad/3;
+	if (GetWorld()) GetWorld()->GetTimerManager().SetTimer(TimerHandle_Slow,this,&AEnemyTemplate::OnSlowCD,TimeAmount,false);
 }
 
 void AEnemyTemplate::OnDeactivateEnemy_Implementation()
@@ -143,6 +154,11 @@ void AEnemyTemplate::OnWeaponOverlap(UPrimitiveComponent* OverlappedComponent, A
 {
 	if (OtherActor->ActorHasTag("Player"))
 	{
-		IHiteableInterface::Execute_OnHitReceived(OtherActor,15.f);
+		IHiteableInterface::Execute_OnHitReceived(OtherActor,15.f, this);
 	}
+}
+
+void AEnemyTemplate::OnSlowCD()
+{
+	Velocidad = MaxVelocidad;
 }

@@ -3,6 +3,7 @@
 #include "Systems/EnemiesManager.h"
 #include "IAnimationBudgetAllocator.h"
 #include "Kismet/KismetSystemLibrary.h"
+#include "Systems/AbilitiesManager.h"
 
 void AModoJuego::BeginPlay()
 {
@@ -23,5 +24,11 @@ void AModoJuego::BeginPlay()
 			EnemiesManager->EnemiesToSpawn = EnemiesToLoad;
 			EnemiesManager->BeginManageEnemiesLoop();
 		}
+	}
+	
+	if (SkillsDataBase)
+	{
+		UAbilitiesManager* Manager = GetWorld()->GetSubsystem<UAbilitiesManager>();
+		if (Manager) Manager->LoadAllAbilities(SkillsDataBase);
 	}
 }

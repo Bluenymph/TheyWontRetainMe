@@ -1,7 +1,7 @@
-#include "Abilities/VelocitySpeed.h"
+#include "Abilities/Buff_ShootSpeed.h"
 #include "Characters/PlayerTemplate.h"
 
-void UVelocitySpeed::ActivateAbility(AActor* InOwner)
+void UBuff_ShootSpeed::ActivateAbility(AActor* InOwner)
 {
 	Super::ActivateAbility(InOwner);
 	

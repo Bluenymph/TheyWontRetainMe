@@ -2,10 +2,10 @@
 
 #include "CoreMinimal.h"
 #include "BaseAbility.h"
-#include "VelocitySpeed.generated.h"
+#include "Buff_ShootSpeed.generated.h"
 
 UCLASS()
-class THEYWONTRETAINME_API UVelocitySpeed : public UBaseAbility
+class THEYWONTRETAINME_API UBuff_ShootSpeed : public UBaseAbility
 {
 	GENERATED_BODY()
 	

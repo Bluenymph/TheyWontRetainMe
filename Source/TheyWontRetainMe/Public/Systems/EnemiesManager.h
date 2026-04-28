@@ -4,6 +4,7 @@
 #include "Subsystems/WorldSubsystem.h"
 #include "EnemiesManager.generated.h"
 
+class UGameManager;
 class AEnemyTemplate;
 
 /**
@@ -46,6 +47,9 @@ public:
 
 	UFUNCTION(BlueprintCallable)
 	AEnemyTemplate* GetEnemyUnderTarget();
+	
+	UFUNCTION(BlueprintCallable)
+	FVector GetNearestEnemy(FVector ActorPosition);
 
 	void Deinitialize() override;
 
@@ -60,6 +64,9 @@ private:
 	
 	UPROPERTY()
 	APawn* PlayerPawn;
+	
+	UPROPERTY()
+	UGameManager* GameManager;
 
 #pragma region SpawnEnemiesLoop
 	FTimerHandle LoopEnemySpawn;

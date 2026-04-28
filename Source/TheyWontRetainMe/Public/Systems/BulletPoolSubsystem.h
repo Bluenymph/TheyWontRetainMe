@@ -5,6 +5,7 @@
 #include "BulletPoolSubsystem.generated.h"
 
 class ABulletTemplate;
+class AModoJuego;
 
 /**
  * Hago este struct por si en el futuro queremos meter varios tipos de bala.
@@ -33,7 +34,7 @@ public:
 	void PrewarmPool(TSubclassOf<ABulletTemplate> BulletClass, int32 Amount); //Instanciamos unas cuantas balas al principio
 	
 	UFUNCTION(BlueprintCallable, Category = "Combat")
-	ABulletTemplate* GetBulletFromPool(TSubclassOf<ABulletTemplate> BulletClass, FVector Location, FRotator Rotation, float Damage);
+	ABulletTemplate* GetBulletFromPool(TSubclassOf<ABulletTemplate> BulletClass, FVector Location, FRotator Rotation, float Damage, AActor* HitOwner);
 
 	UFUNCTION(BlueprintCallable, Category = "Combat")
 	void ReturnBulletToPool(ABulletTemplate* Bullet);
@@ -41,4 +42,7 @@ public:
 private:
 	UPROPERTY()
 	TMap<TSubclassOf<ABulletTemplate>, FBulletPool> PoolMap;
+	
+	UPROPERTY()
+	AModoJuego* ModoJuego;
 };

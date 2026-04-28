@@ -1,10 +1,12 @@
 #include "AnimInstances/PlayerAnimInstance.h"
 #include "Animation/AnimMontage.h"
 #include "LogMacros.h"
+#include "Actors/BulletTemplate.h"
 #include "Actors/WeaponTemplate.h"
 #include "Characters/PlayerTemplate.h"
 #include "Systems/BulletPoolSubsystem.h"
 #include "GameFramework/CharacterMovementComponent.h"
+#include "Systems/AbilitiesManager.h"
 
 void UPlayerAnimInstance::NativeUpdateAnimation(float DeltaSeconds)
 {
@@ -30,6 +32,11 @@ void UPlayerAnimInstance::NativeInitializeAnimation()
 		{
 			PlayerCharacter->OnFiringStateChanged.AddDynamic(this, &UPlayerAnimInstance::ActualizarEstadoDisparo);
 		}
+	}
+	
+	if (!AbilitiesManager)
+	{
+		AbilitiesManager = GetWorld()->GetSubsystem<UAbilitiesManager>();
 	}
 }
 
@@ -71,7 +78,6 @@ void UPlayerAnimInstance::AnimNotify_FinDeEsquive()
 	if (PlayerCharacter)
 	{
 		PlayerCharacter->BeginDodgeTimer();
-		LOG("HEHE")
 	}
 }
 
@@ -90,7 +96,35 @@ void UPlayerAnimInstance::Disparar()
 	if (BulletSubsystem)
 	{
 		FRotator DesiredRotation = PlayerCharacter->GetPlayerCameraBoomYawRotation();
-		BulletSubsystem->GetBulletFromPool(PlayerCharacter->GetPlayerBulletClass(), 
-			ArmaDisparo->GetActorLocation(), DesiredRotation, PlayerCharacter->GetCurrentBulletDamage());
+		FVector DesiredPosition = ArmaDisparo->GetActorLocation();
+		
+		ABulletTemplate* OriginalBullet = BulletSubsystem->GetBulletFromPool(
+			PlayerCharacter->GetPlayerBulletClass(), 
+			DesiredPosition, 
+			DesiredRotation, 
+			PlayerCharacter->GetCurrentBulletDamage(), 
+			PlayerCharacter);
+		
+		float SideMultiplier = 1.0f;
+
+		for (int32 i = 0; i < AbilitiesManager->GetExtraBulletsQuantity(); i++)
+		{
+			SideMultiplier *= -1.0f;
+    
+			float Offset = 100.0f * (i / 2 + 1);
+			FVector NewPosition = DesiredPosition;
+			NewPosition.Y += Offset * SideMultiplier;
+
+			ABulletTemplate* Bullet = BulletSubsystem->GetBulletFromPool(
+				PlayerCharacter->GetPlayerBulletClass(), 
+				NewPosition, 
+				DesiredRotation, 
+				PlayerCharacter->GetCurrentBulletDamage() / 3, 
+				PlayerCharacter);
+			
+			if(Bullet) Bullet->ReduceBulletSize(1.5f);
+
+		}
+		
 	}
 }

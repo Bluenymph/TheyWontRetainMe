@@ -6,16 +6,21 @@
 #include "Interfaces/HiteableInterface.h"
 #include "PlayerTemplate.generated.h"
 
-class UAbilityData;
+class UAbilitiesManager;
+class ULevelUp;
 class AMainHUD;
-class UUserInterface;
 class ABulletTemplate;
-class USpringArmComponent;
-class UCameraComponent;
-class UInputMappingContext;
-class UInputAction;
-class UCharacterAttributes;
 class AWeaponTemplate;
+class APlayerController;
+class UUserWidget;
+class UAbilityData;
+class UInputAction;
+class UGameManager;
+class UUserInterface;
+class UCameraComponent;
+class USpringArmComponent;
+class UInputMappingContext;
+class UCharacterAttributes;
 class UPaperFlipbookComponent;
 class UMaterialInstanceDynamic;
 struct FInputActionValue;
@@ -30,13 +35,22 @@ class THEYWONTRETAINME_API APlayerTemplate : public ACharacter, public IHiteable
 public:
 	APlayerTemplate();
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
-
+	
 	UPROPERTY(BlueprintAssignable, Category = "Events")
 	FOnFiringStateChanged OnFiringStateChanged;
 	
 	void CambiarCadenciaDisparo(const float NuevaCadencia);
 	
-	void OnHitReceived_Implementation(float Damage) override;
+	void OnHitReceived_Implementation(float Damage, AActor* HitInstigator) override;
+	
+	UFUNCTION(BlueprintCallable)
+	void OnDamageInflicted(float Damage);
+	
+	UFUNCTION(BlueprintCallable)
+	void LevelUp(int32 CurrentLevel, int32 Levels);
+	
+	UFUNCTION(BlueprintCallable)
+	void UnPause();
 	
 protected:
 	virtual void BeginPlay() override;
@@ -64,7 +78,10 @@ protected:
 	float TiempoInvencible = 2.5f;
 	
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Propiedades")
-	UAbilityData* TestData;
+	float RoboVidaIndicador = 0.f;
+	
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Propiedades")
+	float ProbabilidadCritico = 0.1f;
 	
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Referencias")
 	TSubclassOf<AWeaponTemplate> WeaponClass;
@@ -80,6 +97,9 @@ protected:
 
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Referencias")
 	UPaperFlipbookComponent* QuickReloadEmote;
+	
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Referencias")
+	TSubclassOf<UUserWidget> LevelUpWidgetClass;
 	
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Inputs")
 	UInputMappingContext* PlayerBaseInput;
@@ -143,6 +163,9 @@ private:
 	FTimerHandle TimerHandle_Esquivar;
 	FTimerHandle TimerHandle_Invincible;
 	
+	UPROPERTY()
+	UGameManager* GameManager;
+	
 	UFUNCTION()
 	void SpawnWeapon();
 	
@@ -164,6 +187,15 @@ private:
 	UPROPERTY()
 	AWeaponTemplate* CurrentSecondaryWeapon; //Para la pistola secundaria
 
+	UPROPERTY()
+	APlayerController* PlayerController;
+	
+	UPROPERTY()
+	ULevelUp* LevelUpWidget;
+	
+	UPROPERTY()
+	UAbilitiesManager* AbilitiesManager;
+	
 	UPROPERTY()
 	bool CanQuickReload = true;
 	
@@ -223,7 +255,15 @@ public:
 	FORCEINLINE float GetOriginalFriction() const { return OriginalFriction; }
 	FORCEINLINE UMaterialInstanceDynamic* GetDynamicMaterial_Mesh() const { return DynamicMaterial_Mesh; }
 	FORCEINLINE float GetCadenciaDisparo() const { return CadenciaDisparo; }
-	FORCEINLINE void SetCadenciaDisparo(float NewCadency) { CadenciaDisparo = NewCadency; }
+	FORCEINLINE float GetRoboVidaIndicador() const { return RoboVidaIndicador; }
+	FORCEINLINE UCharacterAttributes* GetCharacterAttributes() { return CharacterAttributes; }
+	FORCEINLINE float GetPotenciaDisparo() const { return PotenciaDisparo; }
+	FORCEINLINE float GetProbabilidadCritico() const { return ProbabilidadCritico; }
+	
+	FORCEINLINE void SetCadenciaDisparo(const float NewCadency) { CadenciaDisparo = NewCadency; }
+	FORCEINLINE void SetRoboVidaIndicador(const float NuevoIndicador) { RoboVidaIndicador = NuevoIndicador; }
+	FORCEINLINE void SetPotenciaDisparo(const float NuevaPotencia) { PotenciaDisparo = NuevaPotencia; }
+	FORCEINLINE void SetProbabilidadCritico(const float NewCrit) { ProbabilidadCritico = NewCrit; }
 	
 
 };

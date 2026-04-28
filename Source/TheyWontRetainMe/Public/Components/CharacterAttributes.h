@@ -14,6 +14,9 @@ public:
 	UCharacterAttributes();
 
 	const float AttributesTakeDmg(float Damage);
+	
+	UFUNCTION(BlueprintCallable)
+	void Curar(float Cantidad);
 
 protected:
 	virtual void BeginPlay() override;

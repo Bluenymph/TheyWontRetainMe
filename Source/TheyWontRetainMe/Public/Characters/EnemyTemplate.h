@@ -6,14 +6,14 @@
 #include "Interfaces/HiteableInterface.h"
 #include "EnemyTemplate.generated.h"
 
-class UPecadorAnimInstance;
-class UFloatingPawnMovement;
+class UGameManager;
+class UBoxComponent;
 class UCapsuleComponent;
 class UStaticMeshComponent;
+class UPecadorAnimInstance;
 class UCharacterAttributes;
+class UFloatingPawnMovement;
 class USkeletalMeshComponent;
-class UBoxComponent;
-
 
 UCLASS()
 class THEYWONTRETAINME_API AEnemyTemplate : public APawn, public IHiteableInterface, public  IEnemyInterface
@@ -24,17 +24,19 @@ public:
 	AEnemyTemplate();
 	virtual void BeginPlay() override;
 	
-	void OnHitReceived_Implementation(float Damage) override;
+	void OnHitReceived_Implementation(float Damage, AActor* HitInstigator) override;
 	void OnActivateEnemy_Implementation(FVector Position, FRotator Rotation) override;
+	void OnSlowEnemy_Implementation(float TimeAmount) override;
 	void OnDeactivateEnemy_Implementation() override;
 
 	void UpdateMovement(APawn* Player, float DeltaTime);
 	
-	FORCEINLINE UCharacterAttributes* GetCharacterAttributes() { return CharacterAttributes; }
 	FORCEINLINE void SetVelocidad(const float NuevaVelocidad) { Velocidad = NuevaVelocidad; }
+	FORCEINLINE UCharacterAttributes* GetCharacterAttributes() { return CharacterAttributes; }
 	FORCEINLINE float GetVelocidad() const { return Velocidad; }
 	FORCEINLINE float GetMaxVelocidad() const { return MaxVelocidad; }
 	FORCEINLINE UBoxComponent* GetHitComponent() { return HitComponent; }
+	FORCEINLINE float GetExperiencia() { return Experiencia; }
 
 protected:
 	UFUNCTION()
@@ -58,6 +60,9 @@ protected:
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Atributos")
 	float DistanciaAtaque = 3.f;
 	
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Atributos")
+	float Experiencia = 10.f;
+	
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category= "Atributos")
 	float StoppingDistance = 150.f;
 	
@@ -70,11 +75,19 @@ protected:
 	UFUNCTION()
 	void OnWeaponOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
 private:
+	FTimerHandle TimerHandle_Slow;
+	
+	UFUNCTION()
+	void OnSlowCD();
+	
 	UPROPERTY()
 	float Velocidad = 200.f;
 	
 	UPROPERTY()
 	UPecadorAnimInstance* PecadorAnimInstance;
+	
+	UPROPERTY()
+	UGameManager* GameManager;
 	
 	float ZOffset = 10.f; 
 };

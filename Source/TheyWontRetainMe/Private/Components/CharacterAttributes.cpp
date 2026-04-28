@@ -18,6 +18,12 @@ const float UCharacterAttributes::AttributesTakeDmg(float Damage)
 	return VidaActual;
 }
 
+void UCharacterAttributes::Curar(float Cantidad)
+{
+	VidaActual += Cantidad;
+	if (VidaActual > VidaMaxima) VidaActual = VidaMaxima;
+}
+
 
 void UCharacterAttributes::BeginPlay()
 {
