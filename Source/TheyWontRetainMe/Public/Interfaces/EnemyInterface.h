@@ -21,5 +21,7 @@ public:
 	UFUNCTION(BlueprintNativeEvent, BlueprintCallable)
 	void OnActivateEnemy(FVector Position, FRotator Rotation);
 	UFUNCTION(BlueprintNativeEvent, BlueprintCallable)
-	void OnDeactivateEnemy();
+	void OnDeactivateEnemy(bool bGiveExp);
+	UFUNCTION(BlueprintNativeEvent, BlueprintCallable)
+	void OnSlowEnemy(float TimeAmount);
 };

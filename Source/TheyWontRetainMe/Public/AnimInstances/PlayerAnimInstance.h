@@ -52,6 +52,9 @@ private:
 	UPROPERTY()
 	APlayerTemplate* PlayerCharacter;
 	
+	UPROPERTY()
+	UAbilitiesManager* AbilitiesManager;
+	
 	UFUNCTION()
 	void Disparar();//Si, lo hago aqui. ¿Que pasa wacho?
 };

@@ -3,6 +3,7 @@
 #include "Interfaces/AbilityVisualInterface.h"
 #include "Interfaces/EnemyInterface.h"
 #include "Interfaces/HiteableInterface.h"
+#include "Systems/GameManager.h"
 
 void UAbility_Fireballs::ActivateAbility(AActor* InOwner)
 {
@@ -43,6 +44,8 @@ void UAbility_Fireballs::OnVisualOverlap(AActor* OverlappedActor, AActor* OtherA
 	
 	if (OtherActor->Implements<UEnemyInterface>())
 	{
-		IHiteableInterface::Execute_OnHitReceived(OtherActor, 10.f);
+		UGameManager* GameManager = OverlappedActor->GetGameInstance()->GetSubsystem<UGameManager>();
+		GameManager->ShowImpacNumber(OverlappedActor->GetActorLocation(),OtherActor,Damage);
+		IHiteableInterface::Execute_OnHitReceived(OtherActor, Damage, AbilityOwner);
 	}
 }

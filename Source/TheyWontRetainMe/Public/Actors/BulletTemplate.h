@@ -5,8 +5,10 @@
 #include "Interfaces/BulletInterface.h"
 #include "BulletTemplate.generated.h"
 
+class UGameManager;
 class USphereComponent;
 class UProjectileMovementComponent;
+class UUserWidget;
 
 UCLASS()
 class THEYWONTRETAINME_API ABulletTemplate : public AActor, public IBulletInterface
@@ -15,6 +17,8 @@ class THEYWONTRETAINME_API ABulletTemplate : public AActor, public IBulletInterf
 	
 public:	
 	ABulletTemplate();
+	
+	virtual void BeginPlay() override;
 
 protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
@@ -23,7 +27,7 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
 	UProjectileMovementComponent* ProjectileMovement;
 
-	virtual void OnActivateBullet_Implementation(FVector ShootDirection, float Damage, float Speed) override;
+	virtual void OnActivateBullet_Implementation(FVector ShootDirection, float Damage, float Speed, AActor* HitOwner, float Crit) override;
 	virtual void OnDeactivateBullet_Implementation() override;
 	
 	UFUNCTION(BlueprintCallable)
@@ -32,7 +36,7 @@ protected:
 	FTimerHandle LifeTimerHandle;
 
 	UPROPERTY(EditAnywhere)
-	float MaxLifeTime = 1.0f; 
+	float MaxLifeTime = 0.5f; 
 
 	UFUNCTION(BlueprintCallable)
 	virtual void OnHit(UPrimitiveComponent* HitComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, FVector NormalImpulse, const FHitResult& Hit);
@@ -40,7 +44,23 @@ protected:
 private:
 	UPROPERTY()
 	float BulletDamage = 1.f;
+	
+	UPROPERTY()
+	AActor* BulletOwner;
+	
+	UPROPERTY()
+	UGameManager* GameManager;
+	
+	UPROPERTY()
+	FVector OriginalScale;
+	
+	UPROPERTY()
+	float CritChance = 0.f; 
 
 public:
 	FORCEINLINE void SetBulletDamage(float Damage) { BulletDamage = Damage; }
+	
+	FORCEINLINE FVector GetOriginalScale() const { return OriginalScale; }
+	
+	FORCEINLINE void ReduceBulletSize(float Divisor) { SetActorScale3D(GetActorScale3D() / Divisor); }
 };

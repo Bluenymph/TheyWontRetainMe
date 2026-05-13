@@ -16,7 +16,7 @@ class THEYWONTRETAINME_API IBulletInterface
 
 public:
 	UFUNCTION(BlueprintNativeEvent, BlueprintCallable)
-	void OnActivateBullet(FVector ShootDirection, float Damage, float Speed);
+	void OnActivateBullet(FVector ShootDirection, float Damage, float Speed, AActor* Owner, float Crit);
 	UFUNCTION(BlueprintNativeEvent, BlueprintCallable)
 	void OnDeactivateBullet();
 };

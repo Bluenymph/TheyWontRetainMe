@@ -5,6 +5,8 @@
 #include "CharacterAttributes.generated.h"
 
 
+class UGameManager;
+
 UCLASS(ClassGroup=(Custom), meta=(BlueprintSpawnableComponent))
 class THEYWONTRETAINME_API UCharacterAttributes : public UActorComponent
 {
@@ -14,6 +16,9 @@ public:
 	UCharacterAttributes();
 
 	const float AttributesTakeDmg(float Damage);
+	
+	UFUNCTION(BlueprintCallable)
+	void Curar(float Cantidad);
 
 protected:
 	virtual void BeginPlay() override;
@@ -32,6 +37,10 @@ protected:
 
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Atributos")
 	int MaxBalas = 15;
+	
+private:
+	UPROPERTY()
+	UGameManager* GameManager;
 
 public:
 	/** Getters */

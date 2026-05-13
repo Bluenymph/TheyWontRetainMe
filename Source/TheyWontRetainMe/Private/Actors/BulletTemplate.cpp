@@ -4,8 +4,11 @@
 #include "Components/SphereComponent.h"
 #include "GameFramework/ProjectileMovementComponent.h"
 #include "Interfaces/HiteableInterface.h"
+#include "Interfaces/EnemyInterface.h"
+#include "Systems/AbilitiesManager.h"
 #include "Systems/BulletPoolSubsystem.h"
 #include "Systems/EnemiesManager.h"
+#include "Systems/GameManager.h"
 
 ABulletTemplate::ABulletTemplate()
 {
@@ -20,9 +23,17 @@ ABulletTemplate::ABulletTemplate()
 	ProjectileMovement->bAutoActivate = false;
 }
 
-void ABulletTemplate::OnActivateBullet_Implementation(FVector ShootDirection, float Damage, float Speed)
+void ABulletTemplate::BeginPlay()
 {
-	IBulletInterface::OnActivateBullet_Implementation(ShootDirection, Damage, Speed);
+	Super::BeginPlay();
+	
+	GameManager = GetGameInstance()->GetSubsystem<UGameManager>();
+	OriginalScale = GetActorScale3D();
+}
+
+void ABulletTemplate::OnActivateBullet_Implementation(FVector ShootDirection, float Damage, float Speed, AActor* HitOwner, float Crit)
+{
+	IBulletInterface::OnActivateBullet_Implementation(ShootDirection, Damage, Speed, HitOwner, Crit);
 
 	UEnemiesManager* Manager = GetWorld()->GetSubsystem<UEnemiesManager>();
 	AEnemyTemplate* TargetEnemy = Manager->GetEnemyUnderTarget();
@@ -31,6 +42,7 @@ void ABulletTemplate::OnActivateBullet_Implementation(FVector ShootDirection, fl
 	SetActorEnableCollision(true);
 	ProjectileMovement->SetUpdatedComponent(CollisionComp);
 	ProjectileMovement->ProjectileGravityScale = 0.f;
+	CritChance = Crit;
 	BulletDamage = Damage;
 
 	if (TargetEnemy)
@@ -52,6 +64,7 @@ void ABulletTemplate::OnActivateBullet_Implementation(FVector ShootDirection, fl
 	}
 	
 	
+	BulletOwner = HitOwner;
 	ProjectileMovement->Activate();
 	
 	GetWorldTimerManager().SetTimer(LifeTimerHandle, this, &ABulletTemplate::AutoReturnToPool, MaxLifeTime, false);
@@ -67,6 +80,8 @@ void ABulletTemplate::OnDeactivateBullet_Implementation()
 	ProjectileMovement->StopMovementImmediately();
 	ProjectileMovement->SetUpdatedComponent(nullptr);
 	ProjectileMovement->bIsHomingProjectile = false;
+	CritChance = 0.f;
+	BulletOwner = nullptr;
 	
 	SetActorHiddenInGame(true);
 	SetActorEnableCollision(false);
@@ -83,10 +98,27 @@ void ABulletTemplate::AutoReturnToPool()
 void ABulletTemplate::OnHit(UPrimitiveComponent* HitComp, AActor* OtherActor, UPrimitiveComponent* OtherComp,
                             FVector NormalImpulse, const FHitResult& Hit)
 {
-	OnDeactivateBullet_Implementation();
-	if (OtherActor->GetClass()->ImplementsInterface(UHiteableInterface::StaticClass()))
+	if (OtherActor->GetClass()->ImplementsInterface(UHiteableInterface::StaticClass()) && BulletOwner)
 	{
-		IHiteableInterface::Execute_OnHitReceived(OtherActor,BulletDamage);
+		IHiteableInterface::Execute_OnHitReceived(OtherActor,BulletDamage, BulletOwner);
 	}
 	
+	if (OtherActor->GetClass()->ImplementsInterface(UEnemyInterface::StaticClass()))
+	{
+		if (GetWorld()->GetSubsystem<UAbilitiesManager>()->GetSlowEnemies() == true)
+		{
+			IEnemyInterface::Execute_OnSlowEnemy(OtherActor,1.f);
+		}
+	}
+	
+	float Probabilidad = FMath::FRandRange(0.0f, 100.0f);
+
+	if (Probabilidad <= CritChance * 100.0f)
+	{
+		BulletDamage *= 2;
+		LOG("GOLPE CRITICO MAN")
+	}
+	
+	GameManager->ShowImpacNumber(GetActorLocation(),this,BulletDamage);
+	OnDeactivateBullet_Implementation();
 }

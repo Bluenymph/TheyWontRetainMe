@@ -16,5 +16,5 @@ class THEYWONTRETAINME_API IHiteableInterface
 
 public:
 	UFUNCTION(BlueprintNativeEvent, BlueprintCallable)
-	void OnHitReceived(float Damage);
+	void OnHitReceived(float Damage, AActor* Instigator);
 };
