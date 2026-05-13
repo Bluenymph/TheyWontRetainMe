@@ -7,13 +7,16 @@
 #include "GameFramework/CharacterMovementComponent.h"
 #include "GameFramework/SpringArmComponent.h"
 #include "Actors/WeaponTemplate.h"
+#include "Blueprint/UserWidget.h"
 #include "Characters/EnemyTemplate.h"
 #include "Components/CapsuleComponent.h"
 #include "Components/CharacterAttributes.h"
 #include "HUD/MainHUD.h"
-#include "DataAsset/AbilityData.h"
+#include "Kismet/GameplayStatics.h"
+#include "Widgets/LevelUp.h"
 #include "Materials/MaterialInstanceDynamic.h"
 #include "Systems/AbilitiesManager.h"
+#include "Systems/GameManager.h"
 
 APlayerTemplate::APlayerTemplate()
 {
@@ -46,9 +49,9 @@ void APlayerTemplate::CambiarCadenciaDisparo(const float NuevaCadencia)
 	else CadenciaDisparo = NuevaCadencia;
 }
 
-void APlayerTemplate::OnHitReceived_Implementation(float Damage)
+void APlayerTemplate::OnHitReceived_Implementation(float Damage, AActor* HitInstigator)
 {
-	IHiteableInterface::OnHitReceived_Implementation(Damage);
+	IHiteableInterface::OnHitReceived_Implementation(Damage, HitInstigator);
 	
 	if (!CanTakeDmg) return;
 	
@@ -58,6 +61,29 @@ void APlayerTemplate::OnHitReceived_Implementation(float Damage)
 	GetWorldTimerManager().SetTimer(TimerHandle_Invincible, this, &APlayerTemplate::OnInvincibleCD, TiempoInvencible, false);
 	
 	PlayerRecibirGolpe();
+}
+
+void APlayerTemplate::OnDamageInflicted(float Damage)
+{
+	if (CharacterAttributes && RoboVidaIndicador > 0.f)
+	{
+		CharacterAttributes->SetVidaActual(CharacterAttributes->GetVidaActual() + (Damage * RoboVidaIndicador));
+	}
+}
+
+void APlayerTemplate::LevelUp(int32 CurrentLevel, int32 Levels)
+{
+	if (PlayerController && LevelUpWidget)
+	{
+		PlayerController->bShowMouseCursor = true;
+		PlayerController->SetPause(true);
+		
+		FInputModeUIOnly InputMode;
+		PlayerController->SetInputMode(InputMode);
+		
+		LevelUpWidget->AddToViewport(10);
+		LevelUpWidget->InitLevelUp();
+	}
 }
 
 void APlayerTemplate::BeginPlay()
@@ -83,6 +109,8 @@ void APlayerTemplate::BeginPlay()
 		
 		OriginalBraking = GetCharacterMovement()->BrakingDecelerationWalking;
 		OriginalFriction = GetCharacterMovement()->GroundFriction;
+		
+		PlayerController = PC;
 	}
 	
 	GetCapsuleComponent()->OnComponentHit.AddDynamic(this, &APlayerTemplate::OnHit);
@@ -105,6 +133,16 @@ void APlayerTemplate::BeginPlay()
 	{
 		DynamicMaterial_Mesh = GetMesh()->CreateDynamicMaterialInstance(0);
 	}
+	
+	GameManager = GetGameInstance()->GetSubsystem<UGameManager>();
+	GameManager->CurrentPlayer = this;
+	
+	AbilitiesManager = GetWorld()->GetSubsystem<UAbilitiesManager>();
+	
+	GameManager->OnLevelUp.AddUniqueDynamic(this, &APlayerTemplate::LevelUp);
+	
+	LevelUpWidget = CreateWidget<ULevelUp>(PlayerController, LevelUpWidgetClass);
+	
 }
 
 void APlayerTemplate::MirarRaton(const FInputActionValue& Value)
@@ -148,7 +186,6 @@ void APlayerTemplate::LlamarRecargar()
 	{
 		CanQuickReload = false;
 		bool IsQuickReload = ReloadEmote->GetPlaybackPosition() > ReloadThreshold && ReloadEmote->GetPlaybackPosition() < ReloadThreshold + QuickReloadSize;
-		//LOG("¿Recarga exitosa?: %s", IsQuickReload ? TEXT("True") : TEXT("False"));
 		if (IsQuickReload)
 		{
 			OnReloadTimeOut();
@@ -164,14 +201,11 @@ void APlayerTemplate::LlamarRecargar()
 	QuickReloadEmote->SetVisibility(true);
 	ReloadEmote->PlayFromStart();
 	ReloadEmote->SetVisibility(true);
-	
-	UAbilitiesManager* TestManager = GetWorld()->GetSubsystem<UAbilitiesManager>();
-	if (TestManager) TestManager->AddAbilityFromData(TestData);
 }
 
 void APlayerTemplate::Saltar()
 {
-	if (!Controller || !CanChangeAnimation || !CanDodge) return;
+	if (!Controller || !CanChangeAnimation || !CanDodge || !AbilitiesManager->GetDodgeUnlocked()) return;
 	CanChangeAnimation = false;
 	CanDodge = false;
 	PlayerMovementState = EPlayerMovementState::EPMS_Jumping;
@@ -203,10 +237,29 @@ void APlayerTemplate::PlayerRecibirGolpe()
 {
 	CanChangeAnimation = false;
 	PlayerMovementState = EPlayerMovementState::EPMS_Hurt;
-	
-	DynamicMaterial_Mesh->SetScalarParameterValue("Invencible", 1.f);
-	
 	Jump();
+	DynamicMaterial_Mesh->SetScalarParameterValue("Invencible", 1.f);
+}
+
+void APlayerTemplate::PlayerDeath()
+{
+	GameManager->CurrentGameCycleMenu = 1;
+	const FName LevelName = FName("MainMenu");
+	UGameplayStatics::OpenLevel(this, LevelName, true);
+}
+
+void APlayerTemplate::UnPause()
+{
+	if (PlayerController && LevelUpWidget)
+	{
+		PlayerController->bShowMouseCursor = false;
+		PlayerController->SetPause(false);
+		
+		FInputModeGameOnly InputMode;
+		PlayerController->SetInputMode(InputMode);
+		
+		LevelUpWidget->RemoveFromParent();
+	}
 }
 
 void APlayerTemplate::OnHit(UPrimitiveComponent* HitComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp,
@@ -220,10 +273,17 @@ void APlayerTemplate::OnHit(UPrimitiveComponent* HitComponent, AActor* OtherActo
 		{
 			CanTakeDmg = false;
 			CharacterAttributes->AttributesTakeDmg(20.f);
+			
+			if (CharacterAttributes->GetVidaActual() <= 0)
+			{
+				PlayerDeath();
+				return;
+			}
 	
 			GetWorldTimerManager().SetTimer(TimerHandle_Invincible, this, &APlayerTemplate::OnInvincibleCD, TiempoInvencible, false);
 
 			PlayerRecibirGolpe();
+			
 		}
 	}
 }
@@ -262,7 +322,6 @@ void APlayerTemplate::SpawnWeapon()
 void APlayerTemplate::Esquivar()
 {
 	FVector RollDirection = GetLastMovementInputVector();
-	
 
 	if (RollDirection.IsNearlyZero())
 	{
@@ -284,6 +343,22 @@ void APlayerTemplate::Esquivar()
 	GetCharacterMovement()->GroundFriction = 0.5f;
 	
 	LaunchCharacter(LaunchVelocity, true, false);
+	
+	//Si tenemos la mejora de esquiva inmortal...
+	if (AbilitiesManager->GetAbility_InmortalDodge())
+	{
+		CanTakeDmg = false;
+	
+		GetWorldTimerManager().SetTimer(TimerHandle_Invincible, this, &APlayerTemplate::OnInvincibleCD, 1, false);
+
+		DynamicMaterial_Mesh->SetScalarParameterValue("Invencible", 1.f);
+	}
+	
+	//Si tenemos la habilidad de esquiva audaz...
+	if (AbilitiesManager->GetAbility_ReloadDodge())
+	{
+		OnReloadTimeOut();
+	}
 }
 
 void APlayerTemplate::OnTimerCdOut()

@@ -16,14 +16,11 @@ class THEYWONTRETAINME_API UPecadorAnimInstance : public UAnimInstance
 public:
 	UFUNCTION(BlueprintCallable)
 	void OnAnimEnemyAttack();
-	
-	UFUNCTION(BlueprintCallable)
-	void OnAnimEnemyAttacked(float RemainHealth);
 
 	virtual void NativeInitializeAnimation() override;
 	
 	FORCEINLINE EEnemyBehaviourState GetBehaviourState() const { return BehaviourState; }
-	FORCEINLINE void SetBehaviourState(EEnemyBehaviourState NewState) { BehaviourState = NewState; }
+	FORCEINLINE void SetBehaviourState(EEnemyBehaviourState NewState) { if (NewState != BehaviourState) BehaviourState = NewState; }
 
 	
 protected:
@@ -36,6 +33,15 @@ protected:
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "PecadorAnimInstance")
 	EEnemyBehaviourState BehaviourState = EEnemyBehaviourState::EEBS_Idle;
 	
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "PecadorAnimInstance")
+	int32 RandomIdle = 0;
+	
+	UFUNCTION()
+	int32 GetRandomIdle();
+	
 	UFUNCTION()
 	void AnimNotify_AttackEnded();
+	
+	UFUNCTION()
+	void AnimNotify_FinDeTaunt();
 };

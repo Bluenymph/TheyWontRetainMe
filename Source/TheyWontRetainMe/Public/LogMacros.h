@@ -3,7 +3,8 @@
 #include "CoreMinimal.h"
 
 #define LOG(Format, ...) \
-UE_LOG(LogTemp, Warning, TEXT("%s"), \
+UE_LOG(LogTemp, Warning, TEXT("[%s : %d] %s"), \
+	*FString(__FUNCTION__), __LINE__, \
 	*FString::Printf(TEXT(Format), ##__VA_ARGS__))
 
 #define DEBUG(ID, Color, Texto, ...) \

@@ -1,5 +1,9 @@
 #include "Systems/BulletPoolSubsystem.h"
 #include "Actors/BulletTemplate.h"
+#include "Characters/PlayerTemplate.h"
+#include "Kismet/GameplayStatics.h"
+#include "Systems/GameManager.h"
+#include "Systems/ModoJuego.h"
 
 void UBulletPoolSubsystem::PrewarmPool(TSubclassOf<ABulletTemplate> BulletClass, int32 Amount)
 {
@@ -22,9 +26,10 @@ void UBulletPoolSubsystem::PrewarmPool(TSubclassOf<ABulletTemplate> BulletClass,
 			Pool.InactiveBullets.Add(NewBullet);
 		}
 	}
+	ModoJuego = Cast<AModoJuego>(UGameplayStatics::GetGameMode(GetWorld()));
 }
 
-ABulletTemplate* UBulletPoolSubsystem::GetBulletFromPool(TSubclassOf<ABulletTemplate> BulletClass, FVector Location, FRotator Rotation, float Damage)
+ABulletTemplate* UBulletPoolSubsystem::GetBulletFromPool(TSubclassOf<ABulletTemplate> BulletClass, FVector Location, FRotator Rotation, float Damage, AActor* HitOwner)
 {
 	if (!BulletClass) return nullptr;
 
@@ -50,8 +55,16 @@ ABulletTemplate* UBulletPoolSubsystem::GetBulletFromPool(TSubclassOf<ABulletTemp
 		//La movemos a su sitio y la activamos mediante la Interfaz
 		BulletToUse->SetActorLocationAndRotation(Location, Rotation);
 		
+		float CritChance = 0.f;
+		
+		if (HitOwner->ActorHasTag("Player"))
+		{
+			UGameManager* GameManager = HitOwner->GetGameInstance()->GetSubsystem<UGameManager>();
+			if (GameManager) CritChance = GameManager->CurrentPlayer->GetProbabilidadCritico();
+		}
+		
 		//Llamamos a la función de la interfaz para activarla
-		IBulletInterface::Execute_OnActivateBullet(BulletToUse, BulletToUse->GetActorForwardVector(), 1.f,5000.f);
+		IBulletInterface::Execute_OnActivateBullet(BulletToUse, BulletToUse->GetActorForwardVector(), 1.f,5000.f, HitOwner, CritChance);
 	}
 
 	BulletToUse->SetBulletDamage(Damage);
@@ -63,6 +76,7 @@ void UBulletPoolSubsystem::ReturnBulletToPool(ABulletTemplate* Bullet)
 	if (!Bullet) return;
 
 	Bullet->SetBulletDamage(1.0f);
+	Bullet->SetActorScale3D(Bullet->GetOriginalScale());
 	
 	//Desactivamos la bala para que no de por culo
 	IBulletInterface::Execute_OnDeactivateBullet(Bullet);
