@@ -7,6 +7,7 @@
 class UGameManager;
 class AEnemyTemplate;
 
+
 /**
  * Hago este struct por si en el futuro queremos meter varios tipos de enemigos.
  */
@@ -19,6 +20,7 @@ struct FEnemyPool
 	TArray<AEnemyTemplate*> InactiveEnemies;
 };
 
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnEnemyDamaged, AEnemyTemplate*, Enemy, float, Damage);
 /**
  * Sistema para instanciar y manejar a los enemigos.
  * Vamos a usar el protocolo de PoolObjects. Instanciaremos 1000 enemigos al principio y los iremos reciclando.
@@ -37,7 +39,7 @@ public:
 	AEnemyTemplate* GetEnemyFromPool(TSubclassOf<AEnemyTemplate> EnemyClass, FVector Location, FRotator Rotation);
 
 	UFUNCTION(BlueprintCallable)
-	void ReturnEnemyToPool(AEnemyTemplate* Enemy);
+	void ReturnEnemyToPool(AEnemyTemplate* Enemy, bool bGiveExp);
 
 	UFUNCTION(BlueprintCallable)
 	void BeginManageEnemiesLoop();
@@ -50,6 +52,9 @@ public:
 	
 	UFUNCTION(BlueprintCallable)
 	FVector GetNearestEnemy(FVector ActorPosition);
+	
+	UFUNCTION(BlueprintCallable)
+	void OnEnemyBeginDamaged(AEnemyTemplate* Enemy, float Damage);
 
 	void Deinitialize() override;
 
@@ -58,9 +63,20 @@ public:
 
 	UPROPERTY(BlueprintReadWrite, EditAnywhere)
 	TArray<TSubclassOf<AEnemyTemplate>>  EnemiesToSpawn;
+	
+	UPROPERTY()
+	int32 EnemiesAttackTokens = 4;
+	
+	UPROPERTY()
+	int32 LimitEnemies = 499;
+	
+	UPROPERTY()
+	FOnEnemyDamaged OnEnemyDamaged;
 
 private:
 	FTimerHandle TimerHandle_ManageEnemies;
+	
+	const FVector UnderGroundLocation = FVector(0.0f, 0.0f, -100.0f);
 	
 	UPROPERTY()
 	APawn* PlayerPawn;

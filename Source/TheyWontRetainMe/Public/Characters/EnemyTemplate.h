@@ -6,6 +6,8 @@
 #include "Interfaces/HiteableInterface.h"
 #include "EnemyTemplate.generated.h"
 
+class UPaperFlipbookComponent;
+class UEnemiesManager;
 class UGameManager;
 class UBoxComponent;
 class UCapsuleComponent;
@@ -27,9 +29,12 @@ public:
 	void OnHitReceived_Implementation(float Damage, AActor* HitInstigator) override;
 	void OnActivateEnemy_Implementation(FVector Position, FRotator Rotation) override;
 	void OnSlowEnemy_Implementation(float TimeAmount) override;
-	void OnDeactivateEnemy_Implementation() override;
+	void OnDeactivateEnemy_Implementation(bool bGiveExp) override;
 
-	void UpdateMovement(APawn* Player, float DeltaTime);
+	void UpdateMovement(FVector NextPoint, float DeltaTime);
+	
+	UPROPERTY(BlueprintReadWrite, EditAnywhere)
+	bool bHasAttackToken = false;
 	
 	FORCEINLINE void SetVelocidad(const float NuevaVelocidad) { Velocidad = NuevaVelocidad; }
 	FORCEINLINE UCharacterAttributes* GetCharacterAttributes() { return CharacterAttributes; }
@@ -37,7 +42,10 @@ public:
 	FORCEINLINE float GetMaxVelocidad() const { return MaxVelocidad; }
 	FORCEINLINE UBoxComponent* GetHitComponent() { return HitComponent; }
 	FORCEINLINE float GetExperiencia() { return Experiencia; }
-
+	FORCEINLINE AActor* GetPortalActor() { return PortalActor; }
+	
+	UFUNCTION(BlueprintCallable)
+	void OnSlowCD();
 protected:
 	UFUNCTION()
 	void AdjustLocationToGround(FVector& OutLocation, FVector& OutNormal);
@@ -57,6 +65,9 @@ protected:
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category= "Referencias")
 	UBoxComponent* HitComponent;
 	
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category= "Referencias")
+	TSubclassOf<AActor> PortalActorClass;
+	
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Atributos")
 	float DistanciaAtaque = 3.f;
 	
@@ -67,21 +78,52 @@ protected:
 	float StoppingDistance = 150.f;
 	
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category= "Atributos")
-	float MaxVelocidad = 600.f;
+	float MaxVelocidad = 800.f;
+	
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category= "Atributos")
+	float EmergeSpeedMultiplier = 1.1;
 	
 	UPROPERTY(BlueprintReadWrite, EditAnywhere)
 	UFloatingPawnMovement* FloatingPawnMovement;
 	
 	UFUNCTION()
 	void OnWeaponOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
+	
 private:
 	FTimerHandle TimerHandle_Slow;
+	FTimerHandle EmergeTimerHandle;
 	
-	UFUNCTION()
-	void OnSlowCD();
+	const float MAX_ALTITUDE = 500.f;
+	const float ANIM_MOVE_THRESHOLD = 20.f;
+	const float MOVE_THRESHOLD = 100.f;
+	
+	//Emerge things
+	FVector StartLocation;
+	FVector TargetLocation;
+	float PortalZOffset = 70.f;
+	float EmergeInterval = 0.016f; 
+	void UpdateEmergeMovement();
+	
+	UPROPERTY()
+	AActor* PortalActor;
+	
+	UPROPERTY()
+	UPaperFlipbookComponent* PortalFlipbookComponent;
+	
+	UPROPERTY()
+	float ZOffset = 10.f; 
+	
+	UPROPERTY()
+	float AnimHysteresis = 0.f;
 	
 	UPROPERTY()
 	float Velocidad = 200.f;
+	
+	UPROPERTY()
+	bool bActorReady = false;
+	
+	UPROPERTY()
+	FVector LastFrameLocation = FVector(0.0f, 0.0f, 0.0f);
 	
 	UPROPERTY()
 	UPecadorAnimInstance* PecadorAnimInstance;
@@ -89,5 +131,9 @@ private:
 	UPROPERTY()
 	UGameManager* GameManager;
 	
-	float ZOffset = 10.f; 
+	UPROPERTY()
+	UEnemiesManager* EnemiesManager;
+	
+	UPROPERTY()
+	bool bIsTargetReached = false;
 };

@@ -4,6 +4,7 @@
 #include "BaseAbility.h"
 #include "Ability_Torreta.generated.h"
 
+class ABulletTemplate;
 class ATurretActor;
 class UEnemiesManager;
 
@@ -28,6 +29,15 @@ public:
 protected:
 	UPROPERTY(BlueprintReadWrite, EditAnywhere)
 	float Cadencia = 0.8f;
+	
+	UPROPERTY(BlueprintReadWrite, EditAnywhere)
+	TSubclassOf<ABulletTemplate> BulletClass;
+	
+	UPROPERTY(BlueprintReadWrite, EditAnywhere)
+	float DanioBalas = 10.f;
+	
+	UPROPERTY(BlueprintReadWrite, EditAnywhere)
+	float TiempoVida = 60.f;
 	
 private:
 	FTimerHandle FTimerHandler_Shoot;

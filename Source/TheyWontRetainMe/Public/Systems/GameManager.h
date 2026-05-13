@@ -4,6 +4,27 @@
 #include "Subsystems/GameInstanceSubsystem.h"
 #include "GameManager.generated.h"
 
+
+USTRUCT(BlueprintType)
+struct FGameStatistics
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Stats")
+	FString PlayerDmgReceived = "0";
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Stats")
+	FString PlayerDmgInflinged = "0";
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Stats")
+	FString PlayerLevel = "0";
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Stats")
+	FString PlayerAutoHeal = "0";
+
+};
+
+
 class AModoJuego;
 class APlayerTemplate;
 class UBaseAbility;
@@ -25,6 +46,12 @@ public:
 	
 	UPROPERTY()
 	FOnLevelUp OnLevelUp;
+	
+	UPROPERTY()
+	FGameStatistics GameStatistics;
+	
+	UPROPERTY()
+	int CurrentGameCycleMenu = 0;
 	
 	UFUNCTION()
 	void ChangeScene();

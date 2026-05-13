@@ -17,8 +17,6 @@ void UPlayerAnimInstance::NativeUpdateAnimation(float DeltaSeconds)
 		CurrentMovementState = PlayerCharacter->GetPlayerMovementState();
 		CurrentActionState = PlayerCharacter->GetPlayerActionState();
 	}
-	
-	
 }
 
 void UPlayerAnimInstance::NativeInitializeAnimation()
@@ -34,7 +32,7 @@ void UPlayerAnimInstance::NativeInitializeAnimation()
 		}
 	}
 	
-	if (!AbilitiesManager)
+	if (!AbilitiesManager && GetWorld())
 	{
 		AbilitiesManager = GetWorld()->GetSubsystem<UAbilitiesManager>();
 	}

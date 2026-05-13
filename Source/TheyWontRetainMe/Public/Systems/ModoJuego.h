@@ -9,6 +9,9 @@ class APlayerTemplate;
 class AEnemyTemplate;
 class ABulletTemplate;
 class UUserWidget;
+class UBulletPoolSubsystem;
+class UEnemiesManager;
+
 
 /**
  * El modo de juego por defecto.
@@ -38,4 +41,18 @@ protected:
 	UPROPERTY(BlueprintReadWrite, EditAnywhere)
 	TSubclassOf<UUserWidget> ImpactInfoClass;
 
+private:
+	FTimerHandle TimerHandle_BeginSpawnEnemies;
+	
+	UPROPERTY()
+	UBulletPoolSubsystem* BulletSubsystem;
+	
+	UPROPERTY()
+	UEnemiesManager* EnemiesManager;
+	
+	UFUNCTION()
+	void PrewarmPools();
+	
+	UFUNCTION()
+	void SpawnEnemies();
 };

@@ -9,6 +9,8 @@
 #include "Components/SkeletalMeshComponent.h"
 #include "GameFramework/FloatingPawnMovement.h"
 #include "Systems/EnemiesManager.h"
+#include "PaperFlipbookComponent.h"
+#include "ToolContextInterfaces.h"
 #include "Systems/GameManager.h"
 
 AEnemyTemplate::AEnemyTemplate()
@@ -38,7 +40,25 @@ void AEnemyTemplate::BeginPlay()
 	
 	Velocidad = MaxVelocidad;
 	GameManager = GetGameInstance()->GetSubsystem<UGameManager>();
+	EnemiesManager = GetWorld()->GetSubsystem<UEnemiesManager>();
 	HitComponent->OnComponentBeginOverlap.AddDynamic(this, &AEnemyTemplate::OnWeaponOverlap);
+	
+	FActorSpawnParameters SpawnParams;
+	SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+	
+	PortalActor = GetWorld()->SpawnActor<AActor>(
+		PortalActorClass,
+		GetActorLocation(),
+		GetActorRotation(),
+		SpawnParams);
+	
+	if (PortalActor) PortalFlipbookComponent = PortalActor->FindComponentByClass<UPaperFlipbookComponent>();
+	if (PortalFlipbookComponent)
+	{
+		PortalFlipbookComponent->SetUsingAbsoluteLocation(true);
+		PortalFlipbookComponent->SetUsingAbsoluteRotation(true);
+		PortalFlipbookComponent->SetUsingAbsoluteScale(true);
+	}
 }
 
 void AEnemyTemplate::OnHitReceived_Implementation(float Damage, AActor* HitInstigator)
@@ -46,24 +66,77 @@ void AEnemyTemplate::OnHitReceived_Implementation(float Damage, AActor* HitInsti
 	IHiteableInterface::OnHitReceived_Implementation(Damage, HitInstigator);
 	if (CharacterAttributes->AttributesTakeDmg(Damage) < 0.f)
 	{
-		OnDeactivateEnemy_Implementation();
+		OnDeactivateEnemy_Implementation(true);
 	}
-	PecadorAnimInstance->OnAnimEnemyAttacked(CharacterAttributes->GetVidaActual());
+	if (CharacterAttributes->GetVidaActual() <= CharacterAttributes->GetVidaMaxima() / 2)
+	{
+		PecadorAnimInstance->SetBehaviourState(EEnemyBehaviourState::EPWS_Injured);	
+	}
 	
-	if (GameManager && HitInstigator->ActorHasTag("Player")) GameManager->CurrentPlayer->OnDamageInflicted(Damage);
+	if (GameManager && HitInstigator->ActorHasTag("Player"))
+	{
+		GameManager->CurrentPlayer->OnDamageInflicted(Damage);
+		if (EnemiesManager) EnemiesManager->OnEnemyBeginDamaged(this, Damage);
+	}
+	
 }
 
 void AEnemyTemplate::OnActivateEnemy_Implementation(FVector Position, FRotator Rotation)
 {
 	IEnemyInterface::OnActivateEnemy_Implementation(Position, Rotation);
 	
-	PecadorAnimInstance->SetBehaviourState(EEnemyBehaviourState::EEBS_Idle);
+	PecadorAnimInstance->SetBehaviourState(EEnemyBehaviourState::EEBS_Emerging);	
+	TargetLocation = Position;
+	StartLocation = Position - FVector(0.0f, 0.0f, 150.0f);
 	SkeletalMeshComponent->SetComponentTickEnabled(true);
-	SkeletalMeshComponent->Activate();
+	SetActorRotation(Rotation);
 	
-	SetActorLocationAndRotation(Position, Rotation);
+	if (PortalFlipbookComponent)
+	{
+		PortalFlipbookComponent->SetWorldLocation(TargetLocation - FVector(0.0f, 0.0f, PortalZOffset));
+		PortalFlipbookComponent->SetVisibility(true);
+		PortalFlipbookComponent->SetPlaybackPosition(0.0f, false);
+		PortalFlipbookComponent->Play();
+	}
+	
+	SkeletalMeshComponent->Activate();
+	if (SkeletalMeshComponent)
+	{
+		SkeletalMeshComponent->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+		SkeletalMeshComponent->SetCollisionResponseToAllChannels(ECR_Ignore);
+	}
+	SetActorEnableCollision(false);
+	SetActorLocation(StartLocation, false, nullptr, ETeleportType::TeleportPhysics);
 	SetActorHiddenInGame(false);
-	SetActorEnableCollision(true);
+	
+	GetWorldTimerManager().ClearTimer(EmergeTimerHandle);
+	
+	GetWorldTimerManager().SetTimer(
+		EmergeTimerHandle, 
+		this, 
+		&AEnemyTemplate::UpdateEmergeMovement, 
+		EmergeInterval, 
+		true 
+	);
+}
+
+void AEnemyTemplate::UpdateEmergeMovement()
+{
+	if (GetActorLocation().Z >= TargetLocation.Z)
+	{
+		bActorReady = true;
+		GetWorldTimerManager().ClearTimer(EmergeTimerHandle);
+		SetActorEnableCollision(true);
+		if (PortalFlipbookComponent) PortalFlipbookComponent->SetVisibility(false);
+		return;
+	}
+	
+	if (PortalFlipbookComponent)
+	{
+		PortalFlipbookComponent->SetRelativeRotation(
+			PortalFlipbookComponent->GetComponentRotation() + FRotator(0.0f, 2.0f, 0.f));
+	}
+	SetActorLocation(GetActorLocation() + FVector::UpVector * EmergeSpeedMultiplier);
 }
 
 void AEnemyTemplate::OnSlowEnemy_Implementation(float TimeAmount)
@@ -74,9 +147,9 @@ void AEnemyTemplate::OnSlowEnemy_Implementation(float TimeAmount)
 	if (GetWorld()) GetWorld()->GetTimerManager().SetTimer(TimerHandle_Slow,this,&AEnemyTemplate::OnSlowCD,TimeAmount,false);
 }
 
-void AEnemyTemplate::OnDeactivateEnemy_Implementation()
+void AEnemyTemplate::OnDeactivateEnemy_Implementation(bool bGiveExp)
 {
-	IEnemyInterface::OnDeactivateEnemy_Implementation();
+	IEnemyInterface::OnDeactivateEnemy_Implementation(bGiveExp);
 
 	SkeletalMeshComponent->SetComponentTickEnabled(false);
 	SkeletalMeshComponent->Deactivate();
@@ -85,33 +158,101 @@ void AEnemyTemplate::OnDeactivateEnemy_Implementation()
 	SetActorHiddenInGame(true);
 	SetActorEnableCollision(false);
 
-	UEnemiesManager* EnemiesManager = GetWorld()->GetSubsystem<UEnemiesManager>();
-	if (EnemiesManager) EnemiesManager->ReturnEnemyToPool(this);
+	EnemiesManager = GetWorld()->GetSubsystem<UEnemiesManager>();
+	if (EnemiesManager) EnemiesManager->ReturnEnemyToPool(this, bGiveExp);
 }
 
-void AEnemyTemplate::UpdateMovement(APawn* Player, float DeltaTime)
+void AEnemyTemplate::UpdateMovement(FVector NextPoint, float DeltaTime)
 {
-	if (!Player) return;
-
-	FVector CurrentLoc = GetActorLocation();
-	FVector Direction = (Player->GetActorLocation() - CurrentLoc).GetSafeNormal();
-	Direction.Z = 0;
-
-	float CurrentDistance = FVector::Dist(Player->GetActorLocation(), CurrentLoc);
-
-	if (CurrentDistance > StoppingDistance)
+	if (!GameManager || !bActorReady) return;
+	
+	if (bHasAttackToken)
 	{
+		NextPoint = GameManager->CurrentPlayer->GetActorLocation();
+	}
+	
+	FVector CurrentLoc = GetActorLocation();
+	FVector Direction = (NextPoint - CurrentLoc).GetSafeNormal();
+	Direction.Z = 0;
+	
+	if (LastFrameLocation == FVector(0.0f, 0.0f, 0.0f)) LastFrameLocation = CurrentLoc;
+
+	float CurrentDistance = FVector::Dist(NextPoint, CurrentLoc);
+	float Hysteresis = bHasAttackToken ? 50.f : 50.f;
+
+	if (CurrentDistance > (StoppingDistance + Hysteresis))
+	{
+		bIsTargetReached = false; 
+	}
+	else if (CurrentDistance <= StoppingDistance)
+	{
+		bIsTargetReached = true;
+	}
+
+	if (!bIsTargetReached)
+	{
+        
 		FVector NextLocation = CurrentLoc + (Direction * Velocidad * DeltaTime);
 		FVector GroundNormal;
-		
+        
 		AdjustLocationToGround(NextLocation, GroundNormal);
 		AdjustRotationToGround(Direction, GroundNormal, DeltaTime);
+		
+		FHitResult Hit;
+        
+		SetActorLocation(NextLocation, true, &Hit);
+		
+		if (Hit.bBlockingHit)
+		{
+			FVector RemainingVelocity = NextLocation - Hit.ImpactPoint;
+			FVector SlideVector = FVector::VectorPlaneProject(RemainingVelocity, Hit.Normal);
 
-		SetActorLocation(NextLocation, true);
+			AddActorWorldOffset(SlideVector, false);
+		}
 	}else
 	{
-		Velocidad = 300.f;
-		PecadorAnimInstance->OnAnimEnemyAttack();
+		if (bHasAttackToken)
+		{
+			PecadorAnimInstance->OnAnimEnemyAttack();
+			Velocidad = MaxVelocidad/3;
+		}
+	}
+	
+	//Animaciones
+	float ActualSpeed = (CurrentLoc - LastFrameLocation).Size() / DeltaTime;
+	LastFrameLocation = CurrentLoc;
+	
+	if (ActualSpeed <= ANIM_MOVE_THRESHOLD)
+	{
+		AnimHysteresis += 0.1f;
+		
+		if (AnimHysteresis >= 1.f)
+		{
+			PecadorAnimInstance->SetBehaviourState(EEnemyBehaviourState::EEBS_Idle);
+			FVector DirectionToPlayer = (GameManager->CurrentPlayer->GetActorLocation() - GetActorLocation()).GetSafeNormal();
+			DirectionToPlayer.Z = 0;
+    
+			FRotator NewRotation = DirectionToPlayer.Rotation();
+			SetActorRotation(NewRotation);
+		}
+	}else if (ActualSpeed > ANIM_MOVE_THRESHOLD)
+	{
+		AnimHysteresis = 0.f;
+		if (CharacterAttributes->GetVidaActual() <= CharacterAttributes->GetVidaMaxima() / 2)
+		{
+			PecadorAnimInstance->SetBehaviourState(EEnemyBehaviourState::EPWS_Injured);	
+		}
+		else
+		{
+			PecadorAnimInstance->SetBehaviourState(EEnemyBehaviourState::EEBS_Run);
+		}
+	}
+	
+	
+	if(GetActorLocation().Z > MAX_ALTITUDE)
+	{
+		LOG("Un enemigo se fue a la puta. Borrandolo...")
+		Execute_OnDeactivateEnemy(this, false);
 	}
 }
 

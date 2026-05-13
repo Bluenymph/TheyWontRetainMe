@@ -3,7 +3,7 @@
 #include "Animation/AnimMontage.h"
 #include "Characters/EnemyTemplate.h"
 #include "Components/BoxComponent.h"
-#include "Components/CharacterAttributes.h"
+#include "Systems/EnemiesManager.h"
 
 
 void UPecadorAnimInstance::OnAnimEnemyAttack()
@@ -17,15 +17,6 @@ void UPecadorAnimInstance::OnAnimEnemyAttack()
 		EnemyTemplate->GetHitComponent()->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
 	}
 }
-
-void UPecadorAnimInstance::OnAnimEnemyAttacked(float RemainHealth)
-{
-	if (RemainHealth <= EnemyTemplate->GetCharacterAttributes()->GetVidaMaxima() / 2)
-	{
-		BehaviourState = EEnemyBehaviourState::EPWS_Injured;
-	}
-}
-
 void UPecadorAnimInstance::NativeInitializeAnimation()
 {
 	Super::NativeInitializeAnimation();
@@ -34,6 +25,29 @@ void UPecadorAnimInstance::NativeInitializeAnimation()
 	{
 		EnemyTemplate = Cast<AEnemyTemplate>(TryGetPawnOwner());
 	}
+	
+	RandomIdle = GetRandomIdle();
+}
+
+int32 UPecadorAnimInstance::GetRandomIdle()
+{
+	float Prob = FMath::FRandRange(0.f, 100.f);
+	int32 Resultado;
+
+	if (Prob <= 40.f)
+	{
+		Resultado = 0;
+	}
+	else if (Prob <= 80.f) 
+	{
+		Resultado = 1;
+	}
+	else                   
+	{
+		Resultado = 2;
+	}
+	
+	return Resultado;
 }
 
 void UPecadorAnimInstance::AnimNotify_AttackEnded()
@@ -41,5 +55,14 @@ void UPecadorAnimInstance::AnimNotify_AttackEnded()
 	if (EnemyTemplate)
 	{
 		EnemyTemplate->GetHitComponent()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+		EnemyTemplate->bHasAttackToken = false;
+		EnemyTemplate->OnSlowCD();
+		UEnemiesManager* EnemiesManager = GetWorld()->GetSubsystem<UEnemiesManager>();
+		if (EnemiesManager) EnemiesManager->EnemiesAttackTokens++;
 	}
+}
+
+void UPecadorAnimInstance::AnimNotify_FinDeTaunt()
+{
+	RandomIdle = GetRandomIdle();
 }

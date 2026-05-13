@@ -12,6 +12,7 @@
 #include "Components/CapsuleComponent.h"
 #include "Components/CharacterAttributes.h"
 #include "HUD/MainHUD.h"
+#include "Kismet/GameplayStatics.h"
 #include "Widgets/LevelUp.h"
 #include "Materials/MaterialInstanceDynamic.h"
 #include "Systems/AbilitiesManager.h"
@@ -240,6 +241,13 @@ void APlayerTemplate::PlayerRecibirGolpe()
 	DynamicMaterial_Mesh->SetScalarParameterValue("Invencible", 1.f);
 }
 
+void APlayerTemplate::PlayerDeath()
+{
+	GameManager->CurrentGameCycleMenu = 1;
+	const FName LevelName = FName("MainMenu");
+	UGameplayStatics::OpenLevel(this, LevelName, true);
+}
+
 void APlayerTemplate::UnPause()
 {
 	if (PlayerController && LevelUpWidget)
@@ -265,6 +273,12 @@ void APlayerTemplate::OnHit(UPrimitiveComponent* HitComponent, AActor* OtherActo
 		{
 			CanTakeDmg = false;
 			CharacterAttributes->AttributesTakeDmg(20.f);
+			
+			if (CharacterAttributes->GetVidaActual() <= 0)
+			{
+				PlayerDeath();
+				return;
+			}
 	
 			GetWorldTimerManager().SetTimer(TimerHandle_Invincible, this, &APlayerTemplate::OnInvincibleCD, TiempoInvencible, false);
 

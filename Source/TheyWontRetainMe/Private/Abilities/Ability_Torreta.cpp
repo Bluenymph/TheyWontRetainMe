@@ -1,5 +1,4 @@
 #include "Abilities/Ability_Torreta.h"
-
 #include "LogMacros.h"
 #include "Actors/TurretActor.h"
 #include "Interfaces/AbilityVisualInterface.h"
@@ -15,9 +14,32 @@ void UAbility_Torreta::ActivateAbility(AActor* InOwner)
 	
 	AbilityOwner = InOwner;
 
-	FVector SpawnLocation = AbilityOwner->GetActorLocation();
-	VisualActor = GetWorld()->SpawnActor<ATurretActor>(VisualActorClass, SpawnLocation, FRotator::ZeroRotator);
+	//Buscamos el suelo
+	FVector Start = AbilityOwner->GetActorLocation() + (AbilityOwner->GetActorRightVector() * 150.0f);
+	FVector End = Start + (FVector::UpVector * -500.0f);
+
+	FHitResult GroundHit;
+	FCollisionQueryParams QueryParams;
+	QueryParams.AddIgnoredActor(AbilityOwner); // Ignorar al jugador
+	FVector FinalSpawnLocation = Start;
+
+	if (GetWorld()->LineTraceSingleByChannel(GroundHit, Start, End, ECC_Visibility, QueryParams))
+	{
+		FinalSpawnLocation = GroundHit.Location;
+	}
+	
+	
+	FActorSpawnParameters SpawnParams;
+	SpawnParams.Owner = AbilityOwner;
+	SpawnParams.Instigator = AbilityOwner->GetInstigator();
+	SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn;
+
+	VisualActor = GetWorld()->SpawnActor<ATurretActor>(VisualActorClass, FinalSpawnLocation, AbilityOwner->GetActorRotation(), SpawnParams);
 	TurretActor = Cast<ATurretActor>(VisualActor);
+	if (TurretActor) TurretActor->InitDestructionTimer(TiempoVida);
+	
+	if (VisualActor) VisualActor->Tags.Add(FName("Minion"));
+	
 	
 	if (VisualActor && VisualActor->GetClass()->ImplementsInterface(UAbilityVisualInterface::StaticClass()))
 	{
@@ -44,6 +66,7 @@ void UAbility_Torreta::TickAbility(float DeltaTime)
 void UAbility_Torreta::TorretaShoot()
 {
 	if (!EnemiesManager) return;
-	LOG("PUMM")
+	
+	TurretActor->Shoot(DanioBalas, BulletClass);
 	
 }

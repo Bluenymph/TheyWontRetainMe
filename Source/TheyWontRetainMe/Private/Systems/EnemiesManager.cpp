@@ -56,7 +56,7 @@ AEnemyTemplate* UEnemiesManager::GetEnemyFromPool(TSubclassOf<AEnemyTemplate> En
 	if (EnemyToUse)
 	{
 		//La movemos a su sitio y la activamos mediante la Interfaz
-		EnemyToUse->SetActorLocationAndRotation(Location, Rotation);
+		EnemyToUse->SetActorLocationAndRotation(Location - UnderGroundLocation, Rotation);
 		EnemyToUse->GetCharacterAttributes()->SetVidaActual(EnemyToUse->GetCharacterAttributes()->GetVidaMaxima());
 		
 		//Llamamos a la función de la interfaz para activarla
@@ -67,12 +67,12 @@ AEnemyTemplate* UEnemiesManager::GetEnemyFromPool(TSubclassOf<AEnemyTemplate> En
 	return EnemyToUse;
 }
 
-void UEnemiesManager::ReturnEnemyToPool(AEnemyTemplate* Enemy)
+void UEnemiesManager::ReturnEnemyToPool(AEnemyTemplate* Enemy, bool bGiveExp)
 {
 	if (!Enemy) return;
 
 	GameManager = GetWorld()->GetGameInstance()->GetSubsystem<UGameManager>();
-	GameManager->AddExp(Enemy->GetExperiencia());
+	if (bGiveExp)GameManager->AddExp(Enemy->GetExperiencia());
 	
 	FEnemyPool& Pool = EnemyPoolMap.FindOrAdd(Enemy->GetClass());
 	Pool.InactiveEnemies.Add(Enemy);
@@ -114,14 +114,51 @@ void UEnemiesManager::BeginManageEnemiesLoop()
 void UEnemiesManager::ManageEnemies()
 {
 	if (!PlayerPawn) return;
-
-	float DeltaTime = GetWorld()->GetDeltaSeconds(); 
 	
-	for (int32 i = ActiveEnemies.Num() - 1; i >= 0; --i)
+	FVector PlayerLoc = PlayerPawn->GetActorLocation();
+	
+	const float RINGS_SPACING = 200.f; //Espacio entre los anillos
+	const float RADIUS_SPACE = 250.f; //Espacio del primer anillo
+	
+	int32 EnemyIndex = 0;
+	int32 RingIndex = 1;
+
+	while (EnemyIndex < ActiveEnemies.Num())
 	{
-		AEnemyTemplate* Enemy = ActiveEnemies[i];
+		int32 HuecosEnAnillo = RingIndex * 8; 
+		float CurrentRingRadius = RADIUS_SPACE + (RingIndex * RINGS_SPACING);
 		
-		Enemy->UpdateMovement(PlayerPawn, DeltaTime);
+		for (int32 i = 0; i < HuecosEnAnillo && EnemyIndex < ActiveEnemies.Num(); ++i)
+		{
+			AEnemyTemplate* CurrentEnemy = ActiveEnemies[EnemyIndex];
+			if (IsValid(CurrentEnemy))
+			{
+				float Angle = (360.f / HuecosEnAnillo) * i;
+				float Rad = FMath::DegreesToRadians(Angle);
+				
+				FVector Offset(FMath::Cos(Rad) * CurrentRingRadius, FMath::Sin(Rad) * CurrentRingRadius, 0.f);
+				
+				CurrentEnemy->UpdateMovement(PlayerLoc + Offset,GetWorld()->DeltaTimeSeconds);
+			}
+			EnemyIndex++;
+		}
+		RingIndex++;
+	}
+
+	
+	if (ActiveEnemies.Num() > 0)
+	{
+		for (int i = 0; i < EnemiesAttackTokens && i < ActiveEnemies.Num(); ++i)
+		{
+			int32 RandomIndex = FMath::RandRange(0, ActiveEnemies.Num() - 1);
+			AEnemyTemplate* SelectedEnemy = ActiveEnemies[RandomIndex];
+
+			if (IsValid(SelectedEnemy))
+			{
+				SelectedEnemy->bHasAttackToken = true;
+				EnemiesAttackTokens--;
+			}
+		}
 	}
 }
 
@@ -175,11 +212,18 @@ FVector UEnemiesManager::GetNearestEnemy(FVector ActorPosition)
 	return ClosestEnemy->GetActorLocation();
 }
 
+void UEnemiesManager::OnEnemyBeginDamaged(AEnemyTemplate* Enemy, float Damage)
+{
+	OnEnemyDamaged.Broadcast(Enemy,Damage);
+}
+
 
 void UEnemiesManager::SpawnEnemiesLoop()
 {
 	if (!PlayerPawn) return;
 
+	if (ActiveEnemies.Num() > LimitEnemies) return;
+	
 	FVector SpawnPos;
 	FRotator SpawnRot;
 
