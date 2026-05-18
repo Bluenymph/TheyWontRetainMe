@@ -1,6 +1,7 @@
 #include "Systems/MenuGameMode.h"
 #include "Blueprint/UserWidget.h"
 #include "Kismet/GameplayStatics.h"
+#include "Sound/SoundCue.h"
 #include "Systems/GameManager.h"
 
 void AMenuGameMode::BeginPlay()
@@ -12,16 +13,24 @@ void AMenuGameMode::BeginPlay()
 	if (!GameManager) return;
 	
 	TSubclassOf<UUserWidget> CurrentWidgetClass;
+	USoundCue* SelectedMusic = nullptr;
 	
 	if (GameManager->CurrentGameCycleMenu == 0 && StartGameMenu)
 	{
 		CurrentWidgetClass = StartGameMenu;
+		SelectedMusic = Musica_MenuInicio;
 	}else if (GameManager->CurrentGameCycleMenu == 1 && DeathGameMenu)
 	{
 		CurrentWidgetClass = DeathGameMenu;
+		SelectedMusic = Musica_MenuMuerte;
 	}else
 	{
 		UE_LOG(LogTemp, Error, TEXT("ERROR en MenuGameMode.cpp->BeginPlay : Fallan referencias."));
+	}
+	
+	if (SelectedMusic)
+	{
+		UGameplayStatics::PlaySound2D(GetWorld(), SelectedMusic);
 	}
 	
 	UUserWidget* CurrentWidget = CreateWidget<UUserWidget>(GetWorld(), CurrentWidgetClass);

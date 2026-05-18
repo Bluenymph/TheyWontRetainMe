@@ -6,16 +6,17 @@
 #include "Interfaces/HiteableInterface.h"
 #include "EnemyTemplate.generated.h"
 
-class UPaperFlipbookComponent;
-class UEnemiesManager;
 class UGameManager;
 class UBoxComponent;
+class UEnemiesManager;
 class UCapsuleComponent;
 class UStaticMeshComponent;
 class UPecadorAnimInstance;
 class UCharacterAttributes;
 class UFloatingPawnMovement;
 class USkeletalMeshComponent;
+class UPaperFlipbookComponent;
+class UMaterialInstanceDynamic;
 
 UCLASS()
 class THEYWONTRETAINME_API AEnemyTemplate : public APawn, public IHiteableInterface, public  IEnemyInterface
@@ -78,7 +79,7 @@ protected:
 	float StoppingDistance = 150.f;
 	
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category= "Atributos")
-	float MaxVelocidad = 800.f;
+	float MaxVelocidad = 700.f;
 	
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category= "Atributos")
 	float EmergeSpeedMultiplier = 1.1;
@@ -92,17 +93,21 @@ protected:
 private:
 	FTimerHandle TimerHandle_Slow;
 	FTimerHandle EmergeTimerHandle;
+	FTimerHandle TimerHandle_HitFeedBack;
 	
-	const float MAX_ALTITUDE = 500.f;
+	const float MAX_ALTITUDE = 800.f;
 	const float ANIM_MOVE_THRESHOLD = 20.f;
 	const float MOVE_THRESHOLD = 100.f;
 	
 	//Emerge things
 	FVector StartLocation;
 	FVector TargetLocation;
-	float PortalZOffset = 70.f;
+	float PortalZOffset = 100.f;
 	float EmergeInterval = 0.016f; 
 	void UpdateEmergeMovement();
+	
+	UFUNCTION()
+	void EndHitFeedBack();
 	
 	UPROPERTY()
 	AActor* PortalActor;
@@ -133,6 +138,9 @@ private:
 	
 	UPROPERTY()
 	UEnemiesManager* EnemiesManager;
+	
+	UPROPERTY()
+	UMaterialInstanceDynamic* DynamicMaterialInstance;
 	
 	UPROPERTY()
 	bool bIsTargetReached = false;

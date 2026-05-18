@@ -2,7 +2,9 @@
 #include "LogMacros.h"
 #include "Interfaces/AbilityVisualInterface.h"
 #include "Interfaces/EnemyInterface.h"
+#include "Components/AudioComponent.h"
 #include "Interfaces/HiteableInterface.h"
+#include "Kismet/GameplayStatics.h"
 #include "Systems/GameManager.h"
 
 void UAbility_Fireballs::ActivateAbility(AActor* InOwner)
@@ -19,6 +21,21 @@ void UAbility_Fireballs::ActivateAbility(AActor* InOwner)
 	if (VisualActor && VisualActor->GetClass()->ImplementsInterface(UAbilityVisualInterface::StaticClass()))
 	{
 		IAbilityVisualInterface::Execute_SetParentAbility(VisualActor, this);
+	}
+	
+	//SONIDOS
+	if (!MetaSoundPlantilla || !SonidoFuego) return;
+	
+	UAudioComponent* AudioComp = UGameplayStatics::SpawnSoundAtLocation(
+		GetWorld(), 
+		MetaSoundPlantilla, 
+		VisualActor->GetActorLocation()
+	);
+    
+	if (AudioComp)
+	{
+		AudioComp->SetWaveParameter(FName("FireEffect"), SonidoFuego);
+		AudioComp->Play();
 	}
 }
 
@@ -46,6 +63,6 @@ void UAbility_Fireballs::OnVisualOverlap(AActor* OverlappedActor, AActor* OtherA
 	{
 		UGameManager* GameManager = OverlappedActor->GetGameInstance()->GetSubsystem<UGameManager>();
 		GameManager->ShowImpacNumber(OverlappedActor->GetActorLocation(),OtherActor,Damage);
-		IHiteableInterface::Execute_OnHitReceived(OtherActor, Damage, AbilityOwner);
+		IHiteableInterface::Execute_OnHitReceived(OtherActor, Damage, nullptr);
 	}
 }

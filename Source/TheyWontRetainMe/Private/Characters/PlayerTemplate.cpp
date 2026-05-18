@@ -10,12 +10,16 @@
 #include "Blueprint/UserWidget.h"
 #include "Characters/EnemyTemplate.h"
 #include "Components/CapsuleComponent.h"
+#include "Sound/SoundBase.h" 
+#include "Components/AudioComponent.h"
+#include "Sound/SoundWave.h"
 #include "Components/CharacterAttributes.h"
 #include "HUD/MainHUD.h"
 #include "Kismet/GameplayStatics.h"
 #include "Widgets/LevelUp.h"
 #include "Materials/MaterialInstanceDynamic.h"
 #include "Systems/AbilitiesManager.h"
+#include "Widgets/MenuPausa.h"
 #include "Systems/GameManager.h"
 
 APlayerTemplate::APlayerTemplate()
@@ -58,8 +62,14 @@ void APlayerTemplate::OnHitReceived_Implementation(float Damage, AActor* HitInst
 	CanTakeDmg = false;
 	CharacterAttributes->AttributesTakeDmg(Damage);
 	
-	GetWorldTimerManager().SetTimer(TimerHandle_Invincible, this, &APlayerTemplate::OnInvincibleCD, TiempoInvencible, false);
+	if (CharacterAttributes->GetVidaActual() <= 0)
+	{
+		PlayerDeath();
+		return;
+	}
 	
+	GetWorldTimerManager().SetTimer(TimerHandle_Invincible, this, &APlayerTemplate::OnInvincibleCD, TiempoInvencible, false);
+	MainHUD->UpdateUIInfo(CharacterAttributes);
 	PlayerRecibirGolpe();
 }
 
@@ -67,6 +77,12 @@ void APlayerTemplate::OnDamageInflicted(float Damage)
 {
 	if (CharacterAttributes && RoboVidaIndicador > 0.f)
 	{
+		if (GameManager)
+		{
+			float CurrentHeal = FCString::Atof(*GameManager->GameStatistics.PlayerAutoHeal);
+			CurrentHeal += Damage * RoboVidaIndicador;
+			GameManager->GameStatistics.PlayerAutoHeal = FString::SanitizeFloat(CurrentHeal);   
+		}
 		CharacterAttributes->SetVidaActual(CharacterAttributes->GetVidaActual() + (Damage * RoboVidaIndicador));
 	}
 }
@@ -84,6 +100,7 @@ void APlayerTemplate::LevelUp(int32 CurrentLevel, int32 Levels)
 		LevelUpWidget->AddToViewport(10);
 		LevelUpWidget->InitLevelUp();
 	}
+	MainHUD->UpdateUIInfo(CharacterAttributes);
 }
 
 void APlayerTemplate::BeginPlay()
@@ -143,6 +160,16 @@ void APlayerTemplate::BeginPlay()
 	
 	LevelUpWidget = CreateWidget<ULevelUp>(PlayerController, LevelUpWidgetClass);
 	
+	if (GetWorld())
+	{
+		GetWorld()->GetTimerManager().SetTimer(
+			TimerHandle_SecondsAlive,
+			this,
+			&APlayerTemplate::OnAddSecondsAlive,
+			1,
+			true);
+	}
+	MainHUD->UpdateUIInfo(CharacterAttributes);
 }
 
 void APlayerTemplate::MirarRaton(const FInputActionValue& Value)
@@ -201,11 +228,27 @@ void APlayerTemplate::LlamarRecargar()
 	QuickReloadEmote->SetVisibility(true);
 	ReloadEmote->PlayFromStart();
 	ReloadEmote->SetVisibility(true);
+
+	//SONIDOS
+	if (!MetaSoundPlantilla || !SonidoRecarga) return;
+	
+	UAudioComponent* AudioComp = UGameplayStatics::SpawnSoundAtLocation(
+		GetWorld(), 
+		MetaSoundPlantilla, 
+		GetActorLocation()
+	);
+    
+	if (AudioComp)
+	{
+		AudioComp->SetWaveParameter(FName("SoundEffect"), SonidoRecarga);
+		AudioComp->Play();
+	}
+	MainHUD->UpdateUIInfo(CharacterAttributes);
 }
 
 void APlayerTemplate::Saltar()
 {
-	if (!Controller || !CanChangeAnimation || !CanDodge || !AbilitiesManager->GetDodgeUnlocked()) return;
+	if (!Controller || !CanChangeAnimation || !CanDodge) return;
 	CanChangeAnimation = false;
 	CanDodge = false;
 	PlayerMovementState = EPlayerMovementState::EPMS_Jumping;
@@ -226,6 +269,21 @@ void APlayerTemplate::Disparar()
 	CharacterAttributes->SetBalasActuales(CharacterAttributes->GetBalasActuales() - 1);
 	
 	MainHUD->UpdateUIInfo(CharacterAttributes);
+	
+	//SONIDOS
+	if (!MetaSoundPlantilla || !SonidoDisparo) return;
+	
+	UAudioComponent* AudioComp = UGameplayStatics::SpawnSoundAtLocation(
+		GetWorld(), 
+		MetaSoundPlantilla, 
+		GetActorLocation()
+	);
+    
+	if (AudioComp)
+	{
+		AudioComp->SetWaveParameter(FName("SoundEffect"), SonidoDisparo);
+		AudioComp->Play();
+	}
 }
 
 void APlayerTemplate::SoltarBoton()
@@ -243,14 +301,38 @@ void APlayerTemplate::PlayerRecibirGolpe()
 
 void APlayerTemplate::PlayerDeath()
 {
+	if (GetWorld() && GameManager)
+	{
+		GetWorld()->GetTimerManager().ClearTimer(TimerHandle_SecondsAlive);
+		GameManager->GameStatistics.SecondsAlive = FString::FromInt(SecondAlive);
+	}
+	
 	GameManager->CurrentGameCycleMenu = 1;
 	const FName LevelName = FName("MainMenu");
 	UGameplayStatics::OpenLevel(this, LevelName, true);
 }
 
+void APlayerTemplate::Pausar()
+{
+	UGameplayStatics::SetGamePaused(GetWorld(), true);
+	
+	if (PlayerController && !bIsOnLevelUpMenu)
+	{
+		PlayerController->SetPause(true);
+		PlayerController->bShowMouseCursor = true;
+		
+		FInputModeUIOnly InputMode;
+		PlayerController->SetInputMode(InputMode);
+		
+		MenuPausa = CreateWidget<UMenuPausa>(PlayerController, PauseMenuWidgetClass);
+		MenuPausa->AddToViewport(12);
+		MenuPausa->OnMenuPausaClosed.AddUniqueDynamic(this,&APlayerTemplate::UnPause);
+	}
+}
+
 void APlayerTemplate::UnPause()
 {
-	if (PlayerController && LevelUpWidget)
+	if (PlayerController && (LevelUpWidget || MenuPausa))
 	{
 		PlayerController->bShowMouseCursor = false;
 		PlayerController->SetPause(false);
@@ -258,7 +340,8 @@ void APlayerTemplate::UnPause()
 		FInputModeGameOnly InputMode;
 		PlayerController->SetInputMode(InputMode);
 		
-		LevelUpWidget->RemoveFromParent();
+		if (LevelUpWidget)LevelUpWidget->RemoveFromParent();
+		if (MenuPausa)MenuPausa->RemoveFromParent();
 	}
 }
 
@@ -286,6 +369,7 @@ void APlayerTemplate::OnHit(UPrimitiveComponent* HitComponent, AActor* OtherActo
 			
 		}
 	}
+	MainHUD->UpdateUIInfo(CharacterAttributes);
 }
 
 void APlayerTemplate::SpawnWeapon()
@@ -359,11 +443,31 @@ void APlayerTemplate::Esquivar()
 	{
 		OnReloadTimeOut();
 	}
+	
+	if (GameManager)
+	{
+		int32 Current = FCString::Atoi(*GameManager->GameStatistics.PlayerDashes);
+		Current++;
+		GameManager->GameStatistics.PlayerDashes = FString::FromInt(Current);
+	}
+	
+	MainHUD->UpdateJumpInfo(false);
+}
+
+void APlayerTemplate::OnAddSecondsAlive()
+{
+	SecondAlive++;
 }
 
 void APlayerTemplate::OnTimerCdOut()
 {
 	GetWorldTimerManager().ClearTimer(TimerHandle_Disparo);
+}
+
+void APlayerTemplate::OnDodgeCD()
+{
+	CanDodge = true;
+	MainHUD->UpdateJumpInfo(true);
 }
 
 void APlayerTemplate::OnInvincibleCD()
@@ -454,6 +558,7 @@ void APlayerTemplate::SetupPlayerInputComponent(UInputComponent* PlayerInputComp
 		EnhancedInputComponent->BindAction(IA_Saltar, ETriggerEvent::Triggered, this, &APlayerTemplate::Saltar);
 		EnhancedInputComponent->BindAction(IA_Disparar, ETriggerEvent::Triggered, this, &APlayerTemplate::Disparar);
 		EnhancedInputComponent->BindAction(IA_Recargar, ETriggerEvent::Triggered, this, &APlayerTemplate::LlamarRecargar);
+		EnhancedInputComponent->BindAction(IA_Pausar, ETriggerEvent::Triggered, this, &APlayerTemplate::Pausar);
 	}
 
 }

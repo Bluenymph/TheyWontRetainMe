@@ -26,7 +26,7 @@ const float UCharacterAttributes::AttributesTakeDmg(float Damage)
 	{
 		float PlayerDmg = FCString::Atof(*GameManager->GameStatistics.PlayerDmgInflinged);
 		PlayerDmg += Damage;
-		GameManager->GameStatistics.PlayerDmgInflinged = FString::SanitizeFloat(PlayerDmg);
+		GameManager->GameStatistics.PlayerDmgInflinged = FString::Printf(TEXT("%.2f"), PlayerDmg);
 	}
 	
 	return Resultado;

@@ -41,6 +41,13 @@ protected:
 	
 private:
 	FTimerHandle FTimerHandler_Shoot;
+	FTimerHandle FTimerHandler_TiempoVida;
+	
+	UFUNCTION()
+	void AutoDestruction();
+	
+	UPROPERTY()
+	float ZOffset = 60.f;
 	
 	UPROPERTY()
 	UEnemiesManager* EnemiesManager;

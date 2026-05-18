@@ -31,6 +31,8 @@ class THEYWONTRETAINME_API UEnemiesManager : public UWorldSubsystem
 	GENERATED_BODY()
 
 public:
+	virtual void OnWorldBeginPlay(UWorld& InWorld) override;
+	
 	UFUNCTION(BlueprintCallable)
 	void PrewarmEnemyPool(TSubclassOf<AEnemyTemplate> EnemyClass, int32 Amount); 
 
@@ -65,7 +67,7 @@ public:
 	TArray<TSubclassOf<AEnemyTemplate>>  EnemiesToSpawn;
 	
 	UPROPERTY()
-	int32 EnemiesAttackTokens = 4;
+	int32 EnemiesAttackTokens = 4; //Los enemigos que van a intentar atacar a la vez
 	
 	UPROPERTY()
 	int32 LimitEnemies = 499;
@@ -75,6 +77,7 @@ public:
 
 private:
 	FTimerHandle TimerHandle_ManageEnemies;
+	FTimerHandle TimerHandle_GameRhythm;
 	
 	const FVector UnderGroundLocation = FVector(0.0f, 0.0f, -100.0f);
 	
@@ -83,6 +86,18 @@ private:
 	
 	UPROPERTY()
 	UGameManager* GameManager;
+	
+	UPROPERTY()
+	int32 ToMuchEnemies = 20; //Numero para que el codigo sepa si se esta pasando con el spawn
+	
+	UPROPERTY()
+	float HealthExponential = 0.0f;
+	
+	UPROPERTY()
+	float InitialHealth = 60;
+	
+	UPROPERTY()
+	int32 NextSpawnTokenThreshold = 10;//Segundos 
 
 #pragma region SpawnEnemiesLoop
 	FTimerHandle LoopEnemySpawn;
@@ -102,4 +117,8 @@ private:
 
 	UPROPERTY()
 	TArray<AEnemyTemplate*> ActiveEnemies;
+	
+	UFUNCTION()
+	void UpdateGameRhythm();
+	
 };

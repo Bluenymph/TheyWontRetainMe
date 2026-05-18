@@ -2,12 +2,19 @@
 #include "LogMacros.h"
 #include "Actors/ObstacleActor.h"
 #include "Characters/EnemyTemplate.h"
+#include "Characters/PlayerTemplate.h"
 #include "Components/CharacterAttributes.h"
 #include "Interfaces/EnemyInterface.h"
 #include "Kismet/GameplayStatics.h"
 #include "Kismet/KismetMathLibrary.h"
 #include "Systems/GameManager.h"
 
+
+void UEnemiesManager::OnWorldBeginPlay(UWorld& InWorld)
+{
+	Super::OnWorldBeginPlay(InWorld);
+	GameManager = GetWorld()->GetGameInstance()->GetSubsystem<UGameManager>();
+}
 
 void UEnemiesManager::PrewarmEnemyPool(TSubclassOf<AEnemyTemplate> EnemyClass, int32 Amount)
 {
@@ -64,14 +71,19 @@ AEnemyTemplate* UEnemiesManager::GetEnemyFromPool(TSubclassOf<AEnemyTemplate> En
 		ActiveEnemies.Add(EnemyToUse);
 	}
 	
+	
+	if (GameManager && GameManager->CurrentPlayer)
+	{
+		EnemyToUse->GetCharacterAttributes()->SetVidaMaxima(InitialHealth+HealthExponential);
+		EnemyToUse->GetCharacterAttributes()->SetVidaActual(EnemyToUse->GetCharacterAttributes()->GetVidaMaxima());
+	};
 	return EnemyToUse;
 }
 
 void UEnemiesManager::ReturnEnemyToPool(AEnemyTemplate* Enemy, bool bGiveExp)
 {
 	if (!Enemy) return;
-
-	GameManager = GetWorld()->GetGameInstance()->GetSubsystem<UGameManager>();
+	
 	if (bGiveExp)GameManager->AddExp(Enemy->GetExperiencia());
 	
 	FEnemyPool& Pool = EnemyPoolMap.FindOrAdd(Enemy->GetClass());
@@ -108,6 +120,13 @@ void UEnemiesManager::BeginManageEnemiesLoop()
 			0.02f,
 			true
 			);
+		
+		World->GetTimerManager().SetTimer(
+			TimerHandle_GameRhythm,
+			this,
+			&UEnemiesManager::UpdateGameRhythm,
+			10.0f,
+			true);
 	}
 }
 
@@ -220,9 +239,13 @@ void UEnemiesManager::OnEnemyBeginDamaged(AEnemyTemplate* Enemy, float Damage)
 
 void UEnemiesManager::SpawnEnemiesLoop()
 {
-	if (!PlayerPawn) return;
-
-	if (ActiveEnemies.Num() > LimitEnemies) return;
+	if (!PlayerPawn || ActiveEnemies.Num() >= LimitEnemies) return;
+	
+	if (ActiveEnemies.Num() > ToMuchEnemies)
+	{
+		int32 RandomIndex = FMath::RandRange(0, 100);
+		if (RandomIndex <= 49) return;
+	}
 	
 	FVector SpawnPos;
 	FRotator SpawnRot;
@@ -309,5 +332,14 @@ bool UEnemiesManager::GetValidSpawnLocation(FVector& OutLocation, FRotator& OutR
     }
 
     return false;
+}
+
+void UEnemiesManager::UpdateGameRhythm()
+{
+	if (GameManager && GameManager->CurrentPlayer)
+	{
+		ToMuchEnemies += 15;
+		HealthExponential += 10;
+	}
 }
 #pragma endregion

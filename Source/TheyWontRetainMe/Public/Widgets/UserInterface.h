@@ -2,9 +2,10 @@
 
 #include "CoreMinimal.h"
 #include "Blueprint/UserWidget.h"
-#include "Components/TextBlock.h"
 #include "UserInterface.generated.h"
 
+class UImage;
+class UProgressBar;
 class UTextBlock;
 
 /**
@@ -22,7 +23,34 @@ protected:
 	UPROPERTY(meta = (BindWidget))
 	UTextBlock* AmmoText;
 	
+	UPROPERTY(meta = (BindWidget))
+	UTextBlock* ExpText;
+	
+	UPROPERTY(meta = (BindWidget))
+	UProgressBar* HealthBar;
+	
+	UPROPERTY(meta = (BindWidget))
+	UProgressBar* ExpBar;
+	
+	UPROPERTY(meta = (BindWidget))
+	UImage* JumpImage;
+	
+	UPROPERTY(BlueprintReadWrite, EditAnywhere)
+	UTexture2D* JumpImageTextureActive;
+	
+	UPROPERTY(BlueprintReadWrite, EditAnywhere)
+	UTexture2D* JumpImageTextureUnactive;
+	
 public:
-	FORCEINLINE void SetAmmo(const FText NewAmmo) { AmmoText->SetText(NewAmmo); }
-	FORCEINLINE void SetHealth(const FText NewHealth) { HealthText->SetText(NewHealth); }
+	UFUNCTION()
+	void SetHealth(const float NewHealth, const float MaxHealth);
+	
+	UFUNCTION()
+	void SetAmmo(const float NewAmmo, const float MaxAmmo);
+	
+	UFUNCTION()
+	void SetExp(const float NewExp, const float MaxExp);
+	
+	UFUNCTION()
+	void SetJumpActive(const bool NewJumpActive);
 };

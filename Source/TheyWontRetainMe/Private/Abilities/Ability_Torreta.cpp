@@ -3,6 +3,7 @@
 #include "Actors/TurretActor.h"
 #include "Interfaces/AbilityVisualInterface.h"
 #include "Systems/EnemiesManager.h"
+#include "Systems/GameManager.h"
 
 void UAbility_Torreta::ActivateAbility(AActor* InOwner)
 {
@@ -26,6 +27,7 @@ void UAbility_Torreta::ActivateAbility(AActor* InOwner)
 	if (GetWorld()->LineTraceSingleByChannel(GroundHit, Start, End, ECC_Visibility, QueryParams))
 	{
 		FinalSpawnLocation = GroundHit.Location;
+		FinalSpawnLocation.Z += ZOffset;
 	}
 	
 	
@@ -36,7 +38,16 @@ void UAbility_Torreta::ActivateAbility(AActor* InOwner)
 
 	VisualActor = GetWorld()->SpawnActor<ATurretActor>(VisualActorClass, FinalSpawnLocation, AbilityOwner->GetActorRotation(), SpawnParams);
 	TurretActor = Cast<ATurretActor>(VisualActor);
-	if (TurretActor) TurretActor->InitDestructionTimer(TiempoVida);
+	if (TurretActor)
+	{
+		TurretActor->InitDestructionTimer(TiempoVida);
+		GetWorld()->GetTimerManager().SetTimer(
+		FTimerHandler_TiempoVida,
+		this,
+		&UAbility_Torreta::AutoDestruction,
+		TiempoVida,
+		true);
+	}
 	
 	if (VisualActor) VisualActor->Tags.Add(FName("Minion"));
 	
@@ -44,6 +55,14 @@ void UAbility_Torreta::ActivateAbility(AActor* InOwner)
 	if (VisualActor && VisualActor->GetClass()->ImplementsInterface(UAbilityVisualInterface::StaticClass()))
 	{
 		IAbilityVisualInterface::Execute_SetParentAbility(VisualActor, this);
+	}
+	
+	if (GetWorld() && VisualActor)
+	{
+		UGameManager* GameManager = VisualActor->GetGameInstance()->GetSubsystem<UGameManager>();
+		int32 Current = FCString::Atoi(*GameManager->GameStatistics.TurretsNum);
+		Current++;
+		GameManager->GameStatistics.TurretsNum = FString::FromInt(Current);
 	}
 	
 	GetWorld()->GetTimerManager().SetTimer(
@@ -69,4 +88,10 @@ void UAbility_Torreta::TorretaShoot()
 	
 	TurretActor->Shoot(DanioBalas, BulletClass);
 	
+}
+
+void UAbility_Torreta::AutoDestruction()
+{
+	if (GetWorld()) GetWorld()->GetTimerManager().ClearTimer(FTimerHandler_Shoot);
+	MarkAsGarbage();
 }

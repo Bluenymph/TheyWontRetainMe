@@ -30,5 +30,11 @@ public:
 protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	float Damage = 10.f;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Referencias")
+	USoundBase* MetaSoundPlantilla;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Referencias")
+	USoundWave* SonidoFuego;
 
 };

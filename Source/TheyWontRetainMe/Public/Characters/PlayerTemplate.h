@@ -9,15 +9,18 @@
 class UAbilitiesManager;
 class ULevelUp;
 class AMainHUD;
-class ABulletTemplate;
-class AWeaponTemplate;
-class APlayerController;
+class UMenuPausa;
+class USoundBase;
+class USoundWave;
 class UUserWidget;
 class UAbilityData;
 class UInputAction;
 class UGameManager;
 class UUserInterface;
+class ABulletTemplate;
+class AWeaponTemplate;
 class UCameraComponent;
+class APlayerController;
 class USpringArmComponent;
 class UInputMappingContext;
 class UCharacterAttributes;
@@ -62,7 +65,7 @@ protected:
 	UCharacterAttributes* CharacterAttributes;
 	
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Propiedades")
-	float CadenciaEsquiva = 10.f;
+	float CadenciaEsquiva = 5.f;
 	
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Propiedades")
 	float CadenciaDisparo = 0.5f;
@@ -88,7 +91,16 @@ protected:
 	
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Referencias")
 	TSubclassOf<ABulletTemplate> BulletClass;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Referencias")
+	USoundBase* MetaSoundPlantilla;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Referencias")
+	USoundWave* SonidoDisparo;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Referencias")
+	USoundWave* SonidoRecarga;
+	
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Referencias")
 	AMainHUD* MainHUD;
 
@@ -100,6 +112,9 @@ protected:
 	
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Referencias")
 	TSubclassOf<UUserWidget> LevelUpWidgetClass;
+	
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Referencias")
+	TSubclassOf<UUserWidget> PauseMenuWidgetClass;
 	
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Inputs")
 	UInputMappingContext* PlayerBaseInput;
@@ -121,6 +136,9 @@ protected:
 
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Inputs")
 	UInputAction* IA_Recargar;
+	
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Inputs")
+	UInputAction* IA_Pausar;
 	
 	UPROPERTY(BlueprintReadWrite, EditAnywhere)
 	USpringArmComponent* SpringArm;
@@ -155,6 +173,9 @@ protected:
 	UFUNCTION(BlueprintCallable)
 	void PlayerDeath();
 	
+	UFUNCTION(BlueprintCallable)
+	void Pausar();
+	
 	UFUNCTION()
 	void OnHit(UPrimitiveComponent* HitComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, FVector NormalImpulse, const FHitResult& Hit);
 	
@@ -165,6 +186,10 @@ private:
 	FTimerHandle TimerHandle_Disparo;
 	FTimerHandle TimerHandle_Esquivar;
 	FTimerHandle TimerHandle_Invincible;
+	FTimerHandle TimerHandle_SecondsAlive;
+	
+	UPROPERTY()
+	int32 SecondAlive = 0;
 	
 	UPROPERTY()
 	UGameManager* GameManager;
@@ -197,6 +222,9 @@ private:
 	ULevelUp* LevelUpWidget;
 	
 	UPROPERTY()
+	UMenuPausa* MenuPausa;
+	
+	UPROPERTY()
 	UAbilitiesManager* AbilitiesManager;
 	
 	UPROPERTY()
@@ -224,13 +252,19 @@ private:
 	float OriginalFriction;
 	
 	UPROPERTY()
+	bool bIsOnLevelUpMenu = false;
+	
+	UPROPERTY()
 	UMaterialInstanceDynamic* DynamicMaterial_Mesh;
+	
+	UFUNCTION()
+	void OnAddSecondsAlive();
 	
 	UFUNCTION()
 	void OnTimerCdOut();
 	
 	UFUNCTION()
-	FORCEINLINE void OnDodgeCD() { CanDodge = true;}
+	void OnDodgeCD();
 
 	UFUNCTION()
 	void OnInvincibleCD();
@@ -262,11 +296,13 @@ public:
 	FORCEINLINE UCharacterAttributes* GetCharacterAttributes() { return CharacterAttributes; }
 	FORCEINLINE float GetPotenciaDisparo() const { return PotenciaDisparo; }
 	FORCEINLINE float GetProbabilidadCritico() const { return ProbabilidadCritico; }
+	FORCEINLINE int32 GetSecondsAlive() const { return SecondAlive; }
 	
 	FORCEINLINE void SetCadenciaDisparo(const float NewCadency) { CadenciaDisparo = NewCadency; }
 	FORCEINLINE void SetRoboVidaIndicador(const float NuevoIndicador) { RoboVidaIndicador = NuevoIndicador; }
 	FORCEINLINE void SetPotenciaDisparo(const float NuevaPotencia) { PotenciaDisparo = NuevaPotencia; }
 	FORCEINLINE void SetProbabilidadCritico(const float NewCrit) { ProbabilidadCritico = NewCrit; }
+	FORCEINLINE void SetbIsOnLevelUpMenu(const bool NewValue) { bIsOnLevelUpMenu = NewValue; }
 	
 
 };

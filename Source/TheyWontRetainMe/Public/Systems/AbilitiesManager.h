@@ -38,6 +38,9 @@ public:
 	UFUNCTION(BlueprintCallable)
 	void AddAbilityFromData(UAbilityData* AbilityData);
 	
+	UFUNCTION(BlueprintCallable)
+	void ImpactEffect_CallAbilities(FVector Position);
+	
 	//Busca la habilidad en las que estan activas por UAbilityData, si no la encuentra devuelve -1
 	UFUNCTION(BlueprintCallable)
 	int FindAbility(const UAbilityData* AbilityData);
@@ -59,7 +62,7 @@ private:
 	bool bAbility_ReloadDodge = false;
 	
 	UPROPERTY()
-	bool bDodgeUnlocked = false;
+	bool bDodgeUnlocked = true;
 	
 	UPROPERTY()
 	int ExtraBulletsQuantity = 0;

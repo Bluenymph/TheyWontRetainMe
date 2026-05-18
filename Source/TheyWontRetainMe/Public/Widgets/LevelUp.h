@@ -8,6 +8,7 @@ class UAbilityData;
 class UAbilitiesManager;
 class UButton;
 class UTextBlock;
+class UGameManager;
 
 UCLASS()
 class THEYWONTRETAINME_API ULevelUp : public UUserWidget
@@ -36,6 +37,9 @@ protected:
 	void OnSkillPressed();
 	
 private:
+	UPROPERTY()
+	UGameManager* GameManager;
+	
 	UPROPERTY()
 	UAbilitiesManager* AbilitiesManager;
 	

@@ -3,7 +3,8 @@
 #include "Characters/EnemyTemplate.h"
 #include "Interfaces/AbilityVisualInterface.h"
 #include "Interfaces/HiteableInterface.h"
-#include "Systems/EnemiesManager.h"
+#include "Kismet/GameplayStatics.h"
+#include "Components/AudioComponent.h"
 #include "Systems/GameManager.h"
 
 void UAbility_Thunder::ActivateAbility(AActor* InOwner)
@@ -11,11 +12,6 @@ void UAbility_Thunder::ActivateAbility(AActor* InOwner)
 	Super::ActivateAbility(InOwner);
 	
 	AbilityOwner = InOwner;
-	
-	EnemiesManager = GetWorld()->GetSubsystem<UEnemiesManager>();
-	
-	if (EnemiesManager) EnemiesManager->OnEnemyDamaged.AddUniqueDynamic(this, &UAbility_Thunder::TryInvokeThunder);
-	
 }
 
 void UAbility_Thunder::OnVisualOverlap(AActor* OverlappedActor, AActor* OtherActor)
@@ -26,24 +22,53 @@ void UAbility_Thunder::OnVisualOverlap(AActor* OverlappedActor, AActor* OtherAct
 	{
 		UGameManager* GameManager = OverlappedActor->GetGameInstance()->GetSubsystem<UGameManager>();
 		GameManager->ShowImpacNumber(OverlappedActor->GetActorLocation(),OtherActor,Danio);
-		IHiteableInterface::Execute_OnHitReceived(OtherActor, Danio, AbilityOwner);
+		IHiteableInterface::Execute_OnHitReceived(OtherActor, Danio, nullptr);
 	}
 }
 
-void UAbility_Thunder::TryInvokeThunder(AEnemyTemplate* EnemyTemplate, float Damage)
+void UAbility_Thunder::TrySpawnAbility_Implementation(FVector Position)
 {
-	if (!EnemyTemplate) return;
+	IRandomImpactAbility::TrySpawnAbility_Implementation(Position);
+	
 	bool bSuccess = FMath::RandRange(1, 100) <= Probabilidad;
 	
 	if (bSuccess)
 	{
-		FVector SpawnLocation = EnemyTemplate->GetActorLocation() + FVector(0, 0, 300);
-		VisualActor = GetWorld()->SpawnActor<AActor>(VisualActorClass, SpawnLocation, FRotator::ZeroRotator);
-		VisualActor->UpdateOverlaps(true);
-	
-		if (VisualActor && VisualActor->GetClass()->ImplementsInterface(UAbilityVisualInterface::StaticClass()))
+		FVector SpawnLocation = Position;
+		AActor* NewActor = GetWorld()->SpawnActorDeferred<AActor>(VisualActorClass, FTransform(FRotator::ZeroRotator, SpawnLocation));
+
+		if (NewActor)
 		{
-			IAbilityVisualInterface::Execute_SetParentAbility(VisualActor, this);
+			if (NewActor->GetClass()->ImplementsInterface(UAbilityVisualInterface::StaticClass()))
+			{
+				IAbilityVisualInterface::Execute_SetParentAbility(NewActor, this);
+			}
+			NewActor->FinishSpawning(FTransform(FRotator::ZeroRotator, SpawnLocation));
+			VisualActor = NewActor;
+			VisualActor->UpdateOverlaps(true);
+			
+			if (GetWorld() && VisualActor)
+			{
+				UGameManager* GameManager = VisualActor->GetGameInstance()->GetSubsystem<UGameManager>();
+				int32 Current = FCString::Atoi(*GameManager->GameStatistics.ThundersNum);
+				Current++;
+				GameManager->GameStatistics.ThundersNum = FString::FromInt(Current);
+			}
+			
+			//SONIDOS
+			if (!MetaSoundPlantilla || !SonidoTrueno) return;
+	
+			UAudioComponent* AudioComp = UGameplayStatics::SpawnSoundAtLocation(
+				GetWorld(), 
+				MetaSoundPlantilla, 
+				VisualActor->GetActorLocation()
+			);
+    
+			if (AudioComp)
+			{
+				AudioComp->SetWaveParameter(FName("SoundEffect"), SonidoTrueno);
+				AudioComp->Play();
+			}
 		}
 	}
 }

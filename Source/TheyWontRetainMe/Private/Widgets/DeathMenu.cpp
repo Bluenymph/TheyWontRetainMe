@@ -27,6 +27,8 @@ void UDeathMenu::GoToMainLevel()
 {
 	if (!GetWorld()) return;
 	
+	GameManager->ResetExp();
+	GameManager->ResetStatistics();
 	GameManager->CurrentGameCycleMenu = 0;
 	RemoveFromParent();
 	const FName LevelName = FName("BlockOut");
@@ -40,6 +42,15 @@ void UDeathMenu::GenerateStatistics()
 	FGameStatistics Estadisticas = GameManager->GameStatistics;
 	FString StatText = "";
 	
+	//Tiempo juego
+	StatText += FString::Printf(TEXT("<Gods>Tiempo con vida: </><Rojo>%ss</>\n"),*Estadisticas.SecondsAlive);
+	
+	//Niveles
+	StatText += FString::Printf(TEXT("<Gods>Nivel: </><Rojo>%s</>\n"),*Estadisticas.PlayerLevel);
+	
+	//Enemigos matados
+	StatText += FString::Printf(TEXT("<Gods>Enemigos papeados: </><Rojo>%s</>\n"),*Estadisticas.EnemiesKilled);
+	
 	//Danio infligido
 	StatText += FString::Printf(TEXT("<Gods>Daño inflingido: </><Rojo>%s</>\n"),*Estadisticas.PlayerDmgInflinged);
 	
@@ -48,6 +59,19 @@ void UDeathMenu::GenerateStatistics()
 	
 	//Curacion
 	StatText += FString::Printf(TEXT("<Gods>Autocuracion: </><Rojo>%s</>\n"),*Estadisticas.PlayerAutoHeal);
+	
+	//Dashes
+	if (Estadisticas.PlayerDashes != "0") 
+		StatText += FString::Printf(TEXT("<Gods>Esquivas: </><Rojo>%s</>\n"),*Estadisticas.PlayerDashes);
+	
+	//Truenos
+	if (Estadisticas.ThundersNum != "0") 
+		StatText += FString::Printf(TEXT("<Gods>Rayos invocados: </><Rojo>%s</>\n"),*Estadisticas.ThundersNum);
+	
+	//Torretas
+	if (Estadisticas.TurretsNum != "0") 
+		StatText += FString::Printf(TEXT("<Gods>Torretas invocadas: </><Rojo>%s</>\n"),*Estadisticas.TurretsNum);
+	
 	
 	StatisticsBox->SetText(FText::FromString(*StatText));
 	

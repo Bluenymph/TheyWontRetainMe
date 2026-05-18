@@ -15,6 +15,9 @@ class THEYWONTRETAINME_API UStartGameMenu : public UUserWidget
 	
 protected:
 	
+	UPROPERTY(BlueprintReadWrite, EditAnywhere)
+	TSubclassOf<UUserWidget> OptionsMenuClass;
+	
 	UPROPERTY(BlueprintReadWrite, meta = (BindWidget))
 	UButton* btn_Inicio;
 	
@@ -26,5 +29,11 @@ protected:
 	
 	UFUNCTION(BlueprintCallable)
 	void LoadMainScene();
+	
+	UFUNCTION(BlueprintCallable)
+	void SpawnOptions();
+	
+	UFUNCTION()
+	void DespawnOptions();
 	
 };

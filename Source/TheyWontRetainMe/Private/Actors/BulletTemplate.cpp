@@ -29,6 +29,7 @@ void ABulletTemplate::BeginPlay()
 	
 	GameManager = GetGameInstance()->GetSubsystem<UGameManager>();
 	OriginalScale = GetActorScale3D();
+	if (GetWorld()) AbilitiesManager = GetWorld()->GetSubsystem<UAbilitiesManager>();
 }
 
 void ABulletTemplate::OnActivateBullet_Implementation(FVector ShootDirection, float Damage, float Speed, AActor* HitOwner, float Crit)
@@ -116,9 +117,10 @@ void ABulletTemplate::OnHit(UPrimitiveComponent* HitComp, AActor* OtherActor, UP
 	if (Probabilidad <= CritChance * 100.0f)
 	{
 		BulletDamage *= 2;
-		LOG("GOLPE CRITICO MAN")
 	}
 	
 	GameManager->ShowImpacNumber(GetActorLocation(),this,BulletDamage);
+	if (AbilitiesManager && BulletOwner->ActorHasTag("Player")) 
+		AbilitiesManager->ImpactEffect_CallAbilities(GetActorLocation());
 	OnDeactivateBullet_Implementation();
 }

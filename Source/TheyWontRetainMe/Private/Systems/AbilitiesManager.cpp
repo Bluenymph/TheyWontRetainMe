@@ -5,6 +5,7 @@
 #include "Kismet/GameplayStatics.h"
 #include "DataAsset/AbilitiesDataBase.h"
 #include "Abilities/BaseAbility.h"
+#include "Interfaces/RandomImpactAbility.h"
 
 void UAbilitiesManager::Initialize(FSubsystemCollectionBase& Collection)
 {
@@ -53,6 +54,18 @@ void UAbilitiesManager::AddAbilityFromData(UAbilityData* AbilityData)
 		{
 			int32& Stacks = AbilitiesStack.FindOrAdd(AbilityData);
 			Stacks++;
+		}
+	}
+}
+
+void UAbilitiesManager::ImpactEffect_CallAbilities(FVector Position)
+{
+	for (int i = ActiveAbilities.Num()-1; i >= 0; i--)
+	{
+		if (ActiveAbilities.IsValidIndex(i) && ActiveAbilities[i] && 
+			ActiveAbilities[i]->GetClass()->ImplementsInterface(URandomImpactAbility::StaticClass()))
+		{
+			IRandomImpactAbility::Execute_TrySpawnAbility(ActiveAbilities[i], Position);
 		}
 	}
 }

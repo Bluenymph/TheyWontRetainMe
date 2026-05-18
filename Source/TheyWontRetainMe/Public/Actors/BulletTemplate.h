@@ -52,6 +52,9 @@ private:
 	UGameManager* GameManager;
 	
 	UPROPERTY()
+	UAbilitiesManager* AbilitiesManager;
+	
+	UPROPERTY()
 	FVector OriginalScale;
 	
 	UPROPERTY()

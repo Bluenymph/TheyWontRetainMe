@@ -6,6 +6,7 @@
 
 class UUserWidget;
 class UGameManager;
+class USoundCue;
 
 /**
  * Este game mode es para las escenas donde solo aparecen los menus del juego
@@ -24,6 +25,12 @@ protected:
 	
 	UPROPERTY(BlueprintReadWrite, EditAnywhere)
 	TSubclassOf<UUserWidget> DeathGameMenu;
+	
+	UPROPERTY(BlueprintReadWrite, EditAnywhere)
+	USoundCue* Musica_MenuInicio;
+	
+	UPROPERTY(BlueprintReadWrite, EditAnywhere)
+	USoundCue* Musica_MenuMuerte;
 	
 private:
 	UPROPERTY()

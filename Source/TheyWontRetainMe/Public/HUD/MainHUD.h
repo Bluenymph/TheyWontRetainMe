@@ -4,6 +4,7 @@
 #include "GameFramework/HUD.h"
 #include "MainHUD.generated.h"
 
+class UGameManager;
 class UCharacterAttributes;
 class UUserInterface;
 class UUserWidget;
@@ -28,7 +29,14 @@ public:
 
 	UFUNCTION(BlueprintCallable)
 	void UpdateUIInfo(UCharacterAttributes* Atributos);
+	
+	UFUNCTION(BlueprintCallable)
+	void UpdateJumpInfo(const bool bActive);
 
 protected:
 	virtual void BeginPlay() override;
+	
+private:
+	UPROPERTY()
+	UGameManager* GameManager;
 };

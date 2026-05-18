@@ -10,7 +10,6 @@
 #include "GameFramework/FloatingPawnMovement.h"
 #include "Systems/EnemiesManager.h"
 #include "PaperFlipbookComponent.h"
-#include "ToolContextInterfaces.h"
 #include "Systems/GameManager.h"
 
 AEnemyTemplate::AEnemyTemplate()
@@ -59,6 +58,11 @@ void AEnemyTemplate::BeginPlay()
 		PortalFlipbookComponent->SetUsingAbsoluteRotation(true);
 		PortalFlipbookComponent->SetUsingAbsoluteScale(true);
 	}
+	
+	if (SkeletalMeshComponent)
+	{
+		DynamicMaterialInstance = SkeletalMeshComponent->CreateDynamicMaterialInstance(0);
+	}
 }
 
 void AEnemyTemplate::OnHitReceived_Implementation(float Damage, AActor* HitInstigator)
@@ -73,12 +77,22 @@ void AEnemyTemplate::OnHitReceived_Implementation(float Damage, AActor* HitInsti
 		PecadorAnimInstance->SetBehaviourState(EEnemyBehaviourState::EPWS_Injured);	
 	}
 	
-	if (GameManager && HitInstigator->ActorHasTag("Player"))
+	if (GameManager && HitInstigator && HitInstigator->ActorHasTag("Player"))
 	{
 		GameManager->CurrentPlayer->OnDamageInflicted(Damage);
 		if (EnemiesManager) EnemiesManager->OnEnemyBeginDamaged(this, Damage);
 	}
 	
+	if (GetWorld())
+	{
+		DynamicMaterialInstance->SetScalarParameterValue("Hurt", 1.f);
+			GetWorld()->GetTimerManager().SetTimer(
+			TimerHandle_HitFeedBack,
+			this,
+			&AEnemyTemplate::EndHitFeedBack,
+			0.2,
+			false);
+	}
 }
 
 void AEnemyTemplate::OnActivateEnemy_Implementation(FVector Position, FRotator Rotation)
@@ -139,6 +153,11 @@ void AEnemyTemplate::UpdateEmergeMovement()
 	SetActorLocation(GetActorLocation() + FVector::UpVector * EmergeSpeedMultiplier);
 }
 
+void AEnemyTemplate::EndHitFeedBack()
+{
+	DynamicMaterialInstance->SetScalarParameterValue("Hurt", 0.f);
+}
+
 void AEnemyTemplate::OnSlowEnemy_Implementation(float TimeAmount)
 {
 	IEnemyInterface::OnSlowEnemy_Implementation(TimeAmount);
@@ -160,6 +179,13 @@ void AEnemyTemplate::OnDeactivateEnemy_Implementation(bool bGiveExp)
 
 	EnemiesManager = GetWorld()->GetSubsystem<UEnemiesManager>();
 	if (EnemiesManager) EnemiesManager->ReturnEnemyToPool(this, bGiveExp);
+	if (GameManager)
+	{
+		int32 Current = FCString::Atoi(*GameManager->GameStatistics.EnemiesKilled);
+		Current++;
+		GameManager->GameStatistics.EnemiesKilled = FString::FromInt(Current); 
+	}
+	
 }
 
 void AEnemyTemplate::UpdateMovement(FVector NextPoint, float DeltaTime)

@@ -19,7 +19,7 @@ void UGameManager::AddExp(float Quantity)
 	while (CurrentEXP >= NextLevelThreshold)
 	{
 		CurrentEXP -= NextLevelThreshold;
-		CurrentLevel++; //Nuevo Nivel
+		CurrentLevel++;
 		LevelsToUp++;
         
 		NextLevelThreshold = BASE_XP * FMath::Pow(EXP_MULTIPLIER, CurrentLevel);
@@ -29,6 +29,10 @@ void UGameManager::AddExp(float Quantity)
 	{
 		OnLevelUp.Broadcast(CurrentLevel,LevelsToUp);
 		LevelsToUp = 0;
+		
+		int32 Current = FCString::Atoi(*GameStatistics.PlayerLevel);
+		Current++;
+		GameStatistics.PlayerLevel = FString::FromInt(Current);
 	}
 }
 

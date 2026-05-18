@@ -17,10 +17,25 @@ struct FGameStatistics
 	FString PlayerDmgInflinged = "0";
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Stats")
-	FString PlayerLevel = "0";
+	FString PlayerLevel = "1";
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Stats")
+	FString PlayerDashes = "0";
 	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Stats")
 	FString PlayerAutoHeal = "0";
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Stats")
+	FString EnemiesKilled = "0";
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Stats")
+	FString ThundersNum = "0";
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Stats")
+	FString TurretsNum = "0";
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Stats")
+	FString SecondsAlive = "0";
 
 };
 
@@ -68,6 +83,9 @@ public:
 	FORCEINLINE float GetCurrentEXP() const { return CurrentEXP; }
 	FORCEINLINE int32 GetCurrentLevel() const { return CurrentLevel; }
 	FORCEINLINE float GetNextLevelThreshold() const { return NextLevelThreshold; }
+	
+	FORCEINLINE void ResetExp() { NextLevelThreshold = BASE_XP; CurrentLevel = 0; CurrentEXP = 0.f; }
+	FORCEINLINE void ResetStatistics() { GameStatistics = FGameStatistics(); }
 
 	FORCEINLINE void SetCurrentEXP(float NewEXP) { CurrentEXP = NewEXP; }
 	FORCEINLINE void SetCurrentLevel(int32 NewLevel) { CurrentLevel = NewLevel; }

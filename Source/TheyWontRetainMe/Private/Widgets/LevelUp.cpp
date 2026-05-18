@@ -14,8 +14,13 @@ void ULevelUp::InitLevelUp()
 	if (!AbilitiesManager) 
 		AbilitiesManager = GetWorld()->GetSubsystem<UAbilitiesManager>();
 	
-	
 	if (!AbilitiesManager || AbilitiesManager->AllAbilitiesAvailable.Num() <= 0) return;
+	
+	GameManager = GetGameInstance()->GetSubsystem<UGameManager>();
+	
+	if (!GameManager) return;	
+	
+	GameManager->CurrentPlayer->SetbIsOnLevelUpMenu(true);
 	
 	TArray<UAbilityData*> SelectedAbilities = SelectThreeRngSkills(AbilitiesManager->AllAbilitiesAvailable);
 	TArray<UUserWidget*> Botones;
@@ -50,7 +55,6 @@ void ULevelUp::InitLevelUp()
 
 void ULevelUp::OnSkillPressed()
 {
-	UGameManager* GameManager = GetGameInstance()->GetSubsystem<UGameManager>();
 	
 	if (!AbilitiesManager || !GameManager)
 	{
@@ -87,6 +91,7 @@ void ULevelUp::OnSkillPressed()
 	}
 	
 	ButtonsBindedAbilities.Empty();
+	GameManager->CurrentPlayer->SetbIsOnLevelUpMenu(false);
 	GameManager->CurrentPlayer->UnPause();
 }
 

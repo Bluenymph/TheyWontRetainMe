@@ -1,13 +1,14 @@
 #include "HUD/MainHUD.h"
 #include "Blueprint/UserWidget.h"
 #include "Components/CharacterAttributes.h"
+#include "Systems/GameManager.h"
 #include "Widgets/UserInterface.h"
 
 
 void AMainHUD::BeginPlay()
 {
 	Super::BeginPlay();
-
+	
 	if (UIClass)
 	{
 		APlayerController* PC = GetOwningPlayerController();
@@ -22,30 +23,21 @@ void AMainHUD::BeginPlay()
 
 		UserInterface = Cast<UUserInterface>(CurrentUI);
 	}
+	
+	GameManager = GetGameInstance()->GetSubsystem<UGameManager>();
 }
 
 void AMainHUD::UpdateUIInfo(UCharacterAttributes* Atributos)
 {
 	if (UserInterface)
 	{
-		FText Health = FText::AsNumber(Atributos->GetVidaActual());
-		FText MaxHealth = FText::AsNumber(Atributos->GetVidaMaxima());
-		FText Ammo = FText::AsNumber(Atributos->GetBalasActuales());
-		FText MaxAmmo = FText::AsNumber(Atributos->GetMaxBalas());
-		
-		FText HealthFinal = FText::Format(
-			NSLOCTEXT("MiJuego", "AmmoKey", "Vida: {0} de {1}"),
-			Health,
-			MaxHealth
-		);
-		
-		FText AmmoFinal = FText::Format(
-			NSLOCTEXT("MiJuego", "AmmoKey", "Municion: {0} de {1}"),
-			Ammo,
-			MaxAmmo
-		);
-		
-		UserInterface->SetHealth(HealthFinal);
-		UserInterface->SetAmmo(AmmoFinal);
+		UserInterface->SetHealth(Atributos->GetVidaActual(), Atributos->GetVidaMaxima());
+		UserInterface->SetAmmo(Atributos->GetBalasActuales(), Atributos->GetMaxBalas());
+		UserInterface->SetExp(GameManager->GetCurrentEXP(),GameManager->GetNextLevelThreshold());
 	}
+}
+
+void AMainHUD::UpdateJumpInfo(const bool bActive)
+{
+	UserInterface->SetJumpActive(bActive);
 }
